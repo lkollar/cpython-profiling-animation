@@ -62,6 +62,20 @@ export class StackFrame extends PIXI.Container {
     this.fileText.position.set(12, 36);
     this.addChild(this.fileText);
 
+    // Profiler Stats Text (Initially empty)
+    this.statsText = new PIXI.Text({
+      text: '',
+      style: {
+        fontFamily: 'SF Mono, Monaco, Consolas, monospace',
+        fontSize: 10,
+        fill: 0xFFFFFF,
+        align: 'right',
+      }
+    });
+    this.statsText.anchor.set(1, 0.5);
+    this.statsText.position.set(LAYOUT.frameWidth - 12, LAYOUT.frameHeight / 2);
+    this.addChild(this.statsText);
+
     // Set interactive
     this.eventMode = 'static';
     this.cursor = 'pointer';
@@ -80,6 +94,14 @@ export class StackFrame extends PIXI.Container {
   updateLine(lineno) {
     this.lineno = lineno;
     this.fileText.text = `${this.filename}:${lineno}`;
+  }
+
+  // Update profiler stats
+  updateStats(ncalls, tottime, cumtime) {
+    // Format times (ms)
+    const tot = tottime.toFixed(0);
+    const cum = cumtime.toFixed(0);
+    this.statsText.text = `${ncalls} calls | tot: ${tot}ms | cum: ${cum}ms`;
   }
 
   setActive(isActive) {
