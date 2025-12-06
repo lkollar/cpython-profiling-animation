@@ -76,6 +76,12 @@ export class StackFrame extends PIXI.Container {
     super.destroy(options);
   }
 
+  // Update the line number displayed
+  updateLine(lineno) {
+    this.lineno = lineno;
+    this.fileText.text = `${this.filename}:${lineno}`;
+  }
+
   _getFunctionColor(funcName) {
     // Map function names to colors
     if (funcName === 'main') return COLORS.funcMain;

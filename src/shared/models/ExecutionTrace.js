@@ -47,6 +47,11 @@ export class ExecutionTrace {
         });
       } else if (event.type === 'return') {
         stack.pop();
+      } else if (event.type === 'line') {
+        // Update current line of top stack frame
+        if (stack.length > 0) {
+          stack[stack.length - 1].line = event.lineno;
+        }
       }
     }
 

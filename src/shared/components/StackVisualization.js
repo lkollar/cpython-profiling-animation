@@ -17,6 +17,16 @@ export class StackVisualization extends PIXI.Container {
       this.pushFrame(event.functionName, event.filename, event.lineno, event.args);
     } else if (event.type === 'return') {
       this.popFrame();
+    } else if (event.type === 'line') {
+      this.updateTopFrameLine(event.lineno);
+    }
+  }
+
+  // Update the line number of the top frame
+  updateTopFrameLine(lineno) {
+    if (this.frames.length > 0) {
+      const topFrame = this.frames[this.frames.length - 1];
+      topFrame.updateLine(lineno);
     }
   }
 

@@ -146,8 +146,10 @@ class ExecutionVisualization {
   }
 
   _processEvent(event) {
-    // Add to timeline
-    this.timelinePanel.addEvent(event);
+    // Add to timeline (skip line events to avoid clutter)
+    if (event.type !== 'line') {
+      this.timelinePanel.addEvent(event);
+    }
 
     // Update stack
     this.stackViz.processEvent(event);
@@ -163,6 +165,8 @@ class ExecutionVisualization {
       } else {
         this.codePanel.highlightLine(null);
       }
+    } else if (event.type === 'line') {
+      this.codePanel.highlightLine(event.lineno);
     }
   }
 
@@ -175,9 +179,13 @@ class ExecutionVisualization {
     const stack = this.trace.getStackAt(this.currentTime);
     this.stackViz.updateToMatch(stack);
 
-    // Add all events up to current time to timeline
+    // Add all events up to current time to timeline (excluding line events)
     const events = this.trace.getEventsUntil(this.currentTime);
-    events.forEach(event => this.timelinePanel.addEvent(event));
+    events.forEach(event => {
+      if (event.type !== 'line') {
+        this.timelinePanel.addEvent(event);
+      }
+    });
 
     // Highlight current line
     if (stack.length > 0) {
