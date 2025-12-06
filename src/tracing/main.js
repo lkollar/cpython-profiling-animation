@@ -154,6 +154,7 @@ class TracingVisualization {
     this.currentTime = 0;
     this.eventIndex = 0;
     this.profilerLag = 0;
+    this.isBlocked = false;
     this.profilerData = {};
     this.activeProfilerStack = [];
     this.isPlaying = false;
@@ -172,6 +173,7 @@ class TracingVisualization {
     this.currentTime = progress * this.trace.duration;
     this.eventIndex = 0;
     this.profilerLag = 0;
+    this.isBlocked = false;
     this._rebuildState();
   }
 
@@ -198,41 +200,13 @@ class TracingVisualization {
     }
 
     // Handle Profiler Lag (Overhead)
-    if (this.profilerLag > 0) {
-        // Consume lag
-        // We want the lag to pause the *execution time*, but we still want real time to pass
-        // so the user sees the pause.
-        // The amount of lag consumed per frame depends on playback speed?
-        // If playback speed is 1x, we consume 1ms of lag per 1ms of real time.
-        // If playback speed is 0.1x, we consume 0.1ms of lag per 1ms of real time?
-        // No, lag is "real time" delay.
-        // Let's say lag is 100ms. We want the visualization to pause for 100ms * (1/speed)?
-        // Or is lag defined in "execution time"?
-        // The plan says "Add 5ms delay per hook event".
-        // If we are running at 0.1x speed, 5ms of execution time takes 50ms of real time.
-        // So we should just subtract deltaTime * playbackSpeed from lag?
-        // No, if we want to simulate "CPU busy with profiler", we should just pause `currentTime` advancement
-        // until the "simulated overhead" is paid.
-        
-        // Let's treat `profilerLag` as "ms of execution time spent in profiler".
-        // We need to spend this time.
-        
-        const timeToSpend = deltaTime * this.playbackSpeed;
-        
-        if (this.profilerLag > timeToSpend) {
-            this.profilerLag -= timeToSpend;
-            // Don't advance currentTime
-            return;
-        } else {
-            // Consumed all lag, advance currentTime by remainder
-            const remainder = timeToSpend - this.profilerLag;
-            this.profilerLag = 0;
-            this.currentTime += remainder;
-        }
-    } else {
-        // Advance time normally
-        this.currentTime += deltaTime * this.playbackSpeed;
+    // If we are blocked by the gate, do not advance time.
+    if (this.isBlocked) {
+        return;
     }
+
+    // Advance time
+    this.currentTime += deltaTime * this.playbackSpeed;
 
     // Check for completion
     if (this.currentTime >= this.trace.duration) {
@@ -247,6 +221,15 @@ class TracingVisualization {
 
       if (event.timestamp > this.currentTime) {
         break;
+      }
+
+      // If it's a call/return, we must BLOCK execution to show the hook
+      if (event.type === 'call' || event.type === 'return') {
+          this._triggerBlockingHook(event);
+          // We stop processing further events until the hook is done.
+          // We also need to pause the currentTime advancement in the next frame.
+          this.isBlocked = true;
+          break; 
       }
 
       this._processEvent(event);
@@ -279,18 +262,25 @@ class TracingVisualization {
     });
   }
 
+  async _triggerBlockingHook(event) {
+    // 1. Trigger the gate animation (returns a promise)
+    await this.profilerGate.blockAndPass(event.type);
+    
+    // 2. Once done, process the event
+    this._processEvent(event);
+    this.eventIndex++;
+    
+    // 3. Unblock
+    this.isBlocked = false;
+  }
+
   _processEvent(event) {
     // Add to timeline (skip line events)
     if (event.type !== 'line') {
       this.timelinePanel.addEvent(event);
       
-      // Activate Profiler Hook for call/return
-      this.profilerGate.activate(event.type);
-      
-      // Add overhead
-      const overhead = TIMINGS.hookDelay; // e.g. 10ms
-      this.profilerLag += overhead;
-      this.profilerGate.addOverhead(overhead);
+      // Note: ProfilerGate activation is now handled by _triggerBlockingHook
+      // We don't call activate() here anymore to avoid double activation
     }
 
     // Update Profiler Stats

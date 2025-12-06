@@ -14,66 +14,39 @@ export class StackFrame extends PIXI.Container {
     // Determine color based on function name
     const color = this._getFunctionColor(functionName);
 
-    // Drop shadow for depth
-    const shadow = new PIXI.Graphics();
-    shadow.roundRect(2, 2, LAYOUT.frameWidth, LAYOUT.frameHeight, LAYOUT.frameRadius);
-    shadow.fill({ color: 0x000000, alpha: 0.1 });
-    shadow.filters = [new PIXI.BlurFilter({ strength: 3 })];
-    this.addChild(shadow);
-
     // Background rectangle with border
     this.bg = new PIXI.Graphics();
-    this.bg.roundRect(0, 0, LAYOUT.frameWidth, LAYOUT.frameHeight, LAYOUT.frameRadius);
+    this.bg.roundRect(0, 0, LAYOUT.frameWidth, LAYOUT.frameHeight, 4); // Reduced radius
     this.bg.fill({ color: color });
-    this.bg.stroke({ width: 1, color: COLORS.borderLight, alpha: 1 });
     this.addChild(this.bg);
 
-    // Highlight border (initially hidden, for hover)
-    this.glow = new PIXI.Graphics();
-    this.glow.roundRect(-1, -1, LAYOUT.frameWidth + 2, LAYOUT.frameHeight + 2, LAYOUT.frameRadius);
-    this.glow.stroke({ width: 2, color: COLORS.borderHighlight, alpha: 0 });
-    this.addChildAt(this.glow, 0);
-
-    // Function name text
+    // Function name text (Simplified)
     const displayName = args ? `${functionName}(${this._formatArgs(args)})` : functionName;
     this.nameText = new PIXI.Text({
       text: displayName,
       style: {
-        fontFamily: 'SF Mono, Monaco, Consolas, monospace',
-        fontSize: 15,
-        fill: 0xFFFFFF,  // White text on colored background
-        fontWeight: 'bold',
+        fontFamily: 'system-ui, sans-serif',
+        fontSize: 14,
+        fill: 0xFFFFFF,
+        fontWeight: '600',
       }
     });
-    this.nameText.resolution = 2; // Set resolution directly on instance if needed, or in style options? v8 style options usually don't have resolution. Text instance has it.
-    this.nameText.position.set(12, 12);
+    this.nameText.resolution = 2;
+    this.nameText.position.set(10, 10);
     this.addChild(this.nameText);
 
-    // File info text
-    this.fileText = new PIXI.Text({
-      text: `${filename}:${lineno}`,
-      style: {
-        fontFamily: 'SF Mono, Monaco, Consolas, monospace',
-        fontSize: 11,
-        fill: 0xF0F0F0,  // Light gray text
-      }
-    });
-    this.fileText.resolution = 2;
-    this.fileText.position.set(12, 36);
-    this.addChild(this.fileText);
-
-    // Profiler Stats Text (Initially empty)
+    // Profiler Stats Text (Simplified)
     this.statsText = new PIXI.Text({
       text: '',
       style: {
-        fontFamily: 'SF Mono, Monaco, Consolas, monospace',
-        fontSize: 10,
+        fontFamily: 'Monaco, Consolas, monospace',
+        fontSize: 11,
         fill: 0xFFFFFF,
         align: 'right',
       }
     });
     this.statsText.anchor.set(1, 0.5);
-    this.statsText.position.set(LAYOUT.frameWidth - 12, LAYOUT.frameHeight / 2);
+    this.statsText.position.set(LAYOUT.frameWidth - 10, LAYOUT.frameHeight / 2);
     this.addChild(this.statsText);
 
     // Set interactive
@@ -86,14 +59,13 @@ export class StackFrame extends PIXI.Container {
 
   destroy(options) {
     Tween.killTweensOf(this);
-    Tween.killTweensOf(this.glow);
     super.destroy(options);
   }
 
   // Update the line number displayed
   updateLine(lineno) {
     this.lineno = lineno;
-    this.fileText.text = `${this.filename}:${lineno}`;
+    // No file text to update
   }
 
   // Update profiler stats
@@ -101,7 +73,7 @@ export class StackFrame extends PIXI.Container {
     // Format times (ms)
     const tot = tottime.toFixed(0);
     const cum = cumtime.toFixed(0);
-    this.statsText.text = `${ncalls} calls | tot: ${tot}ms | cum: ${cum}ms`;
+    this.statsText.text = `${ncalls} calls | ${cum}ms`;
   }
 
   setActive(isActive) {
@@ -109,13 +81,14 @@ export class StackFrame extends PIXI.Container {
     this.isActive = isActive;
 
     if (isActive) {
-      // Highlight active frame with thicker border and glow
-      this.bg.stroke({ width: 3, color: COLORS.borderHighlight, alpha: 1 });
-      this.glow.alpha = 0.5; // Persistent glow for active frame
+      // Highlight active frame with thicker border
+      // Note: stroke() might not work if we didn't define a stroke in constructor.
+      // In the simplified version we removed the stroke from constructor.
+      // Let's just change alpha or add a simple border if needed.
+      this.bg.alpha = 1.0;
     } else {
       // Reset to normal
-      this.bg.stroke({ width: 1, color: COLORS.borderLight, alpha: 1 });
-      this.glow.alpha = 0;
+      this.bg.alpha = 0.9;
     }
   }
 
@@ -134,16 +107,15 @@ export class StackFrame extends PIXI.Container {
   }
 
   _onHover() {
-    this.highlight(true);
+    this.bg.alpha = 0.8;
   }
 
   _onHoverOut() {
-    this.highlight(false);
+    this.bg.alpha = 1;
   }
 
   highlight(active) {
-    Tween.killTweensOf(this.glow);
-    Tween.to(this.glow, { alpha: active ? 1 : 0 }, 150, 'easeOutQuad');
+    // No-op for simplified version
   }
 
   animateIn(targetY, duration = 300) {

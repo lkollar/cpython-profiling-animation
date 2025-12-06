@@ -16,6 +16,26 @@ export const Easing = {
     const p = 0.3;
     return Math.pow(2, -10 * t) * Math.sin((t - p / 4) * (2 * Math.PI) / p) + 1;
   },
+
+  easeOutBack: (t) => {
+    const c1 = 1.70158;
+    const c3 = c1 + 1;
+    return 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2);
+  },
+
+  easeOutBounce: (t) => {
+    const n1 = 7.5625;
+    const d1 = 2.75;
+    if (t < 1 / d1) {
+      return n1 * t * t;
+    } else if (t < 2 / d1) {
+      return n1 * (t -= 1.5 / d1) * t + 0.75;
+    } else if (t < 2.5 / d1) {
+      return n1 * (t -= 2.25 / d1) * t + 0.9375;
+    } else {
+      return n1 * (t -= 2.625 / d1) * t + 0.984375;
+    }
+  },
 };
 
 // Active tweens
@@ -27,7 +47,17 @@ export class Tween {
     this.target = target;
     this.props = props;
     this.duration = duration;
-    this.easing = typeof easing === 'string' ? Easing[easing] : easing;
+    
+    // Resolve easing
+    if (typeof easing === 'string') {
+        this.easing = Easing[easing] || Easing.easeOutQuad;
+        if (!Easing[easing]) {
+            console.warn(`Easing function '${easing}' not found, defaulting to easeOutQuad`);
+        }
+    } else {
+        this.easing = easing || Easing.easeOutQuad;
+    }
+    
     this.onComplete = onComplete;
 
     this.elapsed = 0;

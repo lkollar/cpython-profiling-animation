@@ -9,123 +9,103 @@ export class ProfilerGate extends PIXI.Container {
     this.height = height;
     this.overheadTotal = 0;
 
-    // Background (The "Gate" structure)
-    this.bg = new PIXI.Graphics();
-    // Vertical pillar
-    this.bg.roundRect(width/2 - 4, 20, 8, height - 40, 4);
-    this.bg.fill({ color: COLORS.borderLight });
-    this.addChild(this.bg);
+    // --- Visual Structure: The Tollbooth ---
+    
+    // 1. The Booth (Left side)
+    this.booth = new PIXI.Graphics();
+    this.booth.roundRect(10, height/2 - 40, 40, 80, 4);
+    this.booth.fill({ color: COLORS.textSecondary });
+    this.addChild(this.booth);
 
-    // The "Checkpoint" Box (Central Hub)
-    this.checkpoint = new PIXI.Container();
-    this.checkpoint.position.set(width/2, 100);
-    this.addChild(this.checkpoint);
+    // 2. The Barrier Arm (Pivot at booth)
+    this.barrier = new PIXI.Graphics();
+    // Draw arm: long red/white striped bar
+    this.barrier.rect(0, -5, width - 60, 10);
+    this.barrier.fill({ color: COLORS.overheadHigh });
+    this.barrier.position.set(50, height/2); // Pivot point
+    this.barrier.rotation = 0; // Horizontal (Closed)
+    this.addChild(this.barrier);
 
-    // Checkpoint visual
-    this.checkpointBg = new PIXI.Graphics();
-    this.checkpointBg.circle(0, 0, 30);
-    this.checkpointBg.fill({ color: 0xFFFFFF });
-    this.checkpointBg.stroke({ width: 3, color: COLORS.tracingAccent });
-    this.checkpoint.addChild(this.checkpointBg);
+    // 3. Status Light (On the booth)
+    this.light = new PIXI.Graphics();
+    this.light.circle(30, height/2 - 20, 8);
+    this.light.fill({ color: COLORS.error }); // Red initially
+    this.addChild(this.light);
 
-    // Icon/Text inside checkpoint
-    this.statusText = new PIXI.Text({
-      text: 'HOOK',
-      style: {
-        fontFamily: 'system-ui, sans-serif',
-        fontSize: 10,
-        fontWeight: 'bold',
-        fill: COLORS.textSecondary,
-        align: 'center',
-      }
-    });
-    this.statusText.anchor.set(0.5);
-    this.checkpoint.addChild(this.statusText);
-
-    // Overhead Counter (Floating above)
+    // 4. Overhead Counter (Floating above)
     this.overheadLabel = new PIXI.Text({
       text: '+0ms',
       style: {
         fontFamily: 'Monaco, Consolas, monospace',
-        fontSize: 12,
+        fontSize: 14,
         fontWeight: 'bold',
         fill: COLORS.overheadHigh,
         align: 'center',
       }
     });
     this.overheadLabel.anchor.set(0.5);
-    this.overheadLabel.position.set(width/2, 50);
-    this.overheadLabel.alpha = 0; // Hidden initially
+    this.overheadLabel.position.set(width/2, height/2 - 40);
+    this.overheadLabel.alpha = 0;
     this.addChild(this.overheadLabel);
 
-    // Total Overhead (At bottom)
+    // 5. Total Overhead (At bottom)
     this.totalLabel = new PIXI.Text({
-      text: 'Total Overhead\n0ms',
+      text: 'Total Overhead: 0ms',
       style: {
         fontFamily: 'system-ui, sans-serif',
-        fontSize: 11,
+        fontSize: 12,
         fill: COLORS.textSecondary,
         align: 'center',
       }
     });
     this.totalLabel.anchor.set(0.5, 0);
-    this.totalLabel.position.set(width/2, height - 60);
+    this.totalLabel.position.set(width/2, height - 30);
     this.addChild(this.totalLabel);
   }
 
-  activate(type) {
-    // Clear existing reset timer
-    if (this.resetTimer) clearTimeout(this.resetTimer);
-
-    // 1. Visual "Stop" - Checkpoint turns active
-    const color = type === 'call' ? COLORS.success : COLORS.info;
+  // Blocking Animation Sequence
+  // Returns a Promise that resolves when the gate opens
+  async blockAndPass(type) {
+    // 1. STOP! (Red light, Barrier Down)
+    this.light.fill({ color: COLORS.error });
+    this.barrier.rotation = 0; // Ensure closed
     
-    this.checkpointBg.stroke({ width: 4, color: color });
-    this.statusText.text = type.toUpperCase();
-    this.statusText.style.fill = color;
-
-    // Pulse animation
-    this.checkpoint.scale.set(1.2);
-    Tween.to(this.checkpoint.scale, { x: 1, y: 1, duration: 300 });
-
-    // 2. Show Overhead Popup
+    // Show overhead popup
     this.overheadLabel.text = `+${TIMINGS.hookDelay}ms`;
     this.overheadLabel.alpha = 1;
-    this.overheadLabel.position.y = 50;
+    this.overheadLabel.position.y = this.height/2 - 40;
     
-    // Float up and fade
-    Tween.to(this.overheadLabel, { alpha: 0, duration: 800 });
-    Tween.to(this.overheadLabel.position, { y: 20, duration: 800 });
+    // Float up
+    Tween.to(this.overheadLabel.position, { y: this.height/2 - 80 }, 600);
+    Tween.to(this.overheadLabel, { alpha: 0 }, 600);
 
-    // Reset visual after delay
-    this.resetTimer = setTimeout(() => {
-        this.checkpointBg.stroke({ width: 3, color: COLORS.tracingAccent });
-        this.statusText.text = 'HOOK';
-        this.statusText.style.fill = COLORS.textSecondary;
-        this.resetTimer = null;
-    }, 1000);
-  }
+    // Update total
+    this.overheadTotal += TIMINGS.hookDelay;
+    this.totalLabel.text = `Total Overhead: ${this.overheadTotal.toFixed(0)}ms`;
 
-  addOverhead(ms) {
-    this.overheadTotal += ms;
-    this.totalLabel.text = `Total Overhead\n${this.overheadTotal.toFixed(0)}ms`;
+    // Wait for "Processing" (The Lag)
+    await new Promise(r => setTimeout(r, 400)); // Artificial delay for visibility
+
+    // 2. OPEN! (Green light, Barrier Up)
+    this.light.fill({ color: COLORS.success });
     
-    // Flash total label
-    this.totalLabel.style.fill = COLORS.overheadHigh;
-    setTimeout(() => {
-        this.totalLabel.style.fill = COLORS.textSecondary;
-    }, 200);
+    // Animate barrier opening
+    await new Promise(resolve => {
+        Tween.to(this.barrier, { rotation: -Math.PI / 2 }, 200, 'easeOutBack', resolve);
+    });
+
+    // 3. Pass through (Wait a bit)
+    await new Promise(r => setTimeout(r, 100));
+
+    // 4. CLOSE! (Reset)
+    Tween.to(this.barrier, { rotation: 0 }, 200, 'easeOutBounce');
+    this.light.fill({ color: COLORS.error });
   }
 
   reset() {
-    if (this.resetTimer) {
-        clearTimeout(this.resetTimer);
-        this.resetTimer = null;
-    }
     this.overheadTotal = 0;
-    this.totalLabel.text = 'Total Overhead\n0ms';
-    this.statusText.text = 'HOOK';
-    this.statusText.style.fill = COLORS.textSecondary;
-    this.checkpointBg.stroke({ width: 3, color: COLORS.tracingAccent });
+    this.totalLabel.text = 'Total Overhead: 0ms';
+    this.barrier.rotation = 0;
+    this.light.fill({ color: COLORS.error });
   }
 }
