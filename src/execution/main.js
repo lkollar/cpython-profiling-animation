@@ -176,9 +176,9 @@ class ExecutionVisualization {
   }
 
   update(deltaTime) {
-    // Scale tweens with playback speed when playing, normal when paused
-    const tweenDelta = this.isPlaying ? deltaTime * this.playbackSpeed : deltaTime;
-    Tween.updateAll(tweenDelta);
+    // Update tweens at real-time speed, independent of playback speed
+    // This ensures animations (like stack frames sliding) look smooth even at slow playback speeds
+    Tween.updateAll(deltaTime);
 
     if (!this.isPlaying) {
       this.controls.updateTimeDisplay(this.currentTime, this.trace.duration);
