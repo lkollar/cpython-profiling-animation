@@ -53,6 +53,12 @@ export class Tween {
   update(deltaTime) {
     if (!this.active) return false;
 
+    // Check if target is destroyed (PixiJS objects)
+    if (this.target && this.target.destroyed) {
+      this.active = false;
+      return false;
+    }
+
     this.elapsed += deltaTime;
     const progress = Math.min(this.elapsed / this.duration, 1);
     const easedProgress = this.easing(progress);
@@ -61,10 +67,12 @@ export class Tween {
     for (const key in this.props) {
       if (key === 'position' || key === 'scale') {
         // Handle nested objects
-        for (const subKey in this.props[key]) {
-          const start = this.startValues[key][subKey];
-          const end = this.props[key][subKey];
-          this.target[key][subKey] = start + (end - start) * easedProgress;
+        if (this.target[key]) {
+          for (const subKey in this.props[key]) {
+            const start = this.startValues[key][subKey];
+            const end = this.props[key][subKey];
+            this.target[key][subKey] = start + (end - start) * easedProgress;
+          }
         }
       } else {
         const start = this.startValues[key];
@@ -91,7 +99,18 @@ export class Tween {
 
   // Static method to create and start a tween
   static to(target, props, duration, easing = 'easeOutQuad', onComplete = null) {
+    // Kill existing tweens for the same properties on this target?
+    // For simplicity, we won't auto-kill, but we provide killTweensOf
     return new Tween(target, props, duration, easing, onComplete);
+  }
+
+  // Kill all tweens for a specific target
+  static killTweensOf(target) {
+    for (const tween of activeTweens) {
+      if (tween.target === target) {
+        tween.kill();
+      }
+    }
   }
 
   // Update all active tweens (call this in your animation loop)

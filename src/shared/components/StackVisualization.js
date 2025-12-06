@@ -98,9 +98,12 @@ export class StackVisualization extends PIXI.Container {
   _repositionFrames() {
     this.frames.forEach((frame, index) => {
       const targetY = index * (LAYOUT.frameHeight + this.frameSpacing);
+      
       if (Math.abs(frame.position.y - targetY) > 0.5) {
         Tween.to(frame, { position: { y: targetY } }, 200, 'easeOutQuad');
       }
     });
+    
+    this._adjustContainerPosition();
   }
 }

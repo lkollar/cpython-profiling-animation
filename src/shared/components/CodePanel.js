@@ -59,25 +59,27 @@ export class CodePanel {
   }
 
   _highlightSyntax(line) {
-    // Escape HTML entities first (manually, to avoid escaping our spans later)
+    // Escape HTML entities first
     let highlighted = line.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
-    // Keywords: def, if, return, for, in, range, print, elif, else
+    // 1. Strings (f-strings, single quotes, double quotes)
+    // Must be done BEFORE keywords to avoid matching class="keyword" attributes
+    highlighted = highlighted.replace(/(f?"[^"]*"|f?'[^']*')/g, '<span class="string">$1</span>');
+
+    // 2. Comments
+    highlighted = highlighted.replace(/(#.*$)/g, '<span class="comment">$1</span>');
+
+    // 3. Keywords
     const keywords = /\b(def|if|elif|else|return|for|in|range|print|__name__|__main__)\b/g;
     highlighted = highlighted.replace(keywords, '<span class="keyword">$1</span>');
 
-    // Function names (after def keyword span)
+    // 4. Function names (after def keyword span)
+    // Note: We match the span we just created for 'def'
     highlighted = highlighted.replace(/<span class="keyword">def<\/span>\s+(\w+)/g,
       '<span class="keyword">def</span> <span class="function">$1</span>');
 
-    // Strings (f-strings, single quotes, double quotes)
-    highlighted = highlighted.replace(/(f?"[^"]*"|f?'[^']*')/g, '<span class="string">$1</span>');
-
-    // Numbers (but not inside strings - simple approach)
+    // 5. Numbers (but not inside strings - simple approach)
     highlighted = highlighted.replace(/\b(\d+)\b/g, '<span class="number">$1</span>');
-
-    // Comments
-    highlighted = highlighted.replace(/(#.*$)/g, '<span class="comment">$1</span>');
 
     return highlighted;
   }

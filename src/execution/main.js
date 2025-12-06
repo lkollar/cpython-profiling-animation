@@ -53,7 +53,8 @@ class ExecutionVisualization {
       () => this.pause(),
       () => this.reset(),
       (speed) => this.setSpeed(speed),
-      (progress) => this.seek(progress)
+      (progress) => this.seek(progress),
+      () => this.step()
     );
     this.controls.setDuration(this.trace.duration);
 
@@ -76,6 +77,7 @@ class ExecutionVisualization {
     this.stackViz.clear();
     this.codePanel.reset();
     this.timelinePanel.reset();
+    this.controls.updateTimeDisplay(0, this.trace.duration);
   }
 
   setSpeed(speed) {
@@ -86,6 +88,23 @@ class ExecutionVisualization {
     this.currentTime = progress * this.trace.duration;
     this.eventIndex = 0;
     this._rebuildState();
+  }
+
+  step() {
+    this.pause();
+    
+    // Find the next event after current time
+    const nextEvent = this.trace.getNextEvent(this.currentTime);
+    
+    if (nextEvent) {
+      // Advance to just after the event to ensure it's processed
+      this.currentTime = nextEvent.timestamp + 0.1;
+      this.eventIndex = 0;
+      this._rebuildState();
+    } else {
+      // If no next event, just advance a small amount or do nothing
+      // Maybe loop to start? No, just stop.
+    }
   }
 
   update(deltaTime) {

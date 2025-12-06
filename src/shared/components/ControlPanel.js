@@ -3,13 +3,14 @@
 import { TIMINGS } from '../config.js';
 
 export class ControlPanel {
-  constructor(container, onPlay, onPause, onReset, onSpeedChange, onSeek) {
+  constructor(container, onPlay, onPause, onReset, onSpeedChange, onSeek, onStep) {
     this.container = container;
     this.onPlay = onPlay;
     this.onPause = onPause;
     this.onReset = onReset;
     this.onSpeedChange = onSpeedChange;
     this.onSeek = onSeek;
+    this.onStep = onStep;
 
     this.isPlaying = false;
     this.speed = TIMINGS.defaultSpeed;
@@ -82,11 +83,9 @@ export class ControlPanel {
   }
 
   _handleStep() {
-    // Step forward by 10ms
-    const currentValue = parseFloat(this.scrubber.value);
-    const newValue = Math.min(100, currentValue + 1);
-    this.scrubber.value = newValue;
-    this._handleSeek({ target: { value: newValue } });
+    if (this.onStep) {
+      this.onStep();
+    }
   }
 
   _handleSpeedChange(e) {

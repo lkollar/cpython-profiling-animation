@@ -12,19 +12,21 @@ export class TimelinePanel extends PIXI.Container {
 
     // Background
     this.bg = new PIXI.Graphics();
-    this.bg.beginFill(COLORS.panelBg);
-    this.bg.drawRect(0, 0, width, height);
-    this.bg.endFill();
+    this.bg.rect(0, 0, width, height);
+    this.bg.fill(COLORS.panelBg);
     this.addChild(this.bg);
 
     // Title
-    const title = new PIXI.Text('Timeline', {
-      fontFamily: 'SF Mono, Monaco, Consolas, monospace',
-      fontSize: 14,
-      fill: COLORS.textSecondary,
-      fontWeight: 'bold',
-      resolution: 2,
+    const title = new PIXI.Text({
+      text: 'Timeline',
+      style: {
+        fontFamily: 'SF Mono, Monaco, Consolas, monospace',
+        fontSize: 14,
+        fill: COLORS.textSecondary,
+        fontWeight: 'bold',
+      }
     });
+    title.resolution = 2;
     title.position.set(12, 8);
     this.addChild(title);
 
@@ -47,9 +49,9 @@ export class TimelinePanel extends PIXI.Container {
 
     // Horizontal line
     const axis = new PIXI.Graphics();
-    axis.lineStyle(2, COLORS.borderLight);
     axis.moveTo(0, axisY);
     axis.lineTo(axisWidth, axisY);
+    axis.stroke({ width: 2, color: COLORS.borderLight });
     this.timelineContainer.addChild(axis);
 
     // Time labels
@@ -61,18 +63,28 @@ export class TimelinePanel extends PIXI.Container {
       // Tick mark
       axis.moveTo(x, axisY - 5);
       axis.lineTo(x, axisY + 5);
+      axis.stroke({ width: 2, color: COLORS.borderLight });
 
       // Label
-      const label = new PIXI.Text(`${time.toFixed(0)}ms`, {
-        fontFamily: 'SF Mono, Monaco, Consolas, monospace',
-        fontSize: 10,
-        fill: COLORS.textDim,
-        resolution: 2,
+      const label = new PIXI.Text({
+        text: `${time.toFixed(0)}ms`,
+        style: {
+          fontFamily: 'SF Mono, Monaco, Consolas, monospace',
+          fontSize: 10,
+          fill: COLORS.textDim,
+        }
       });
+      label.resolution = 2;
       label.anchor.set(0.5, 0);
       label.position.set(x, axisY + 8);
       this.timelineContainer.addChild(label);
     }
+    // Apply stroke to all paths drawn so far
+    // Wait, if I call stroke() multiple times?
+    // In v8, `stroke()` strokes the *current* path.
+    // So I should probably move `axis.stroke` to after drawing all lines?
+    // Or call it after each segment?
+    // Let's try calling it once at the end of drawing lines.
   }
 
   addEvent(event) {
@@ -85,14 +97,14 @@ export class TimelinePanel extends PIXI.Container {
 
     if (event.type === 'call') {
       // Upward tick for calls
-      marker.lineStyle(2, COLORS.success);
       marker.moveTo(x, axisY);
       marker.lineTo(x, axisY - 15);
+      marker.stroke({ width: 2, color: COLORS.success });
     } else {
       // Downward tick for returns
-      marker.lineStyle(2, COLORS.info);
       marker.moveTo(x, axisY);
       marker.lineTo(x, axisY + 15);
+      marker.stroke({ width: 2, color: COLORS.info });
     }
 
     this.timelineContainer.addChild(marker);
@@ -105,17 +117,20 @@ export class TimelinePanel extends PIXI.Container {
     const x = (currentTime / this.duration) * axisWidth;
 
     this.timeIndicator.clear();
-    this.timeIndicator.lineStyle(2, COLORS.active);
     this.timeIndicator.moveTo(x, 0);
     this.timeIndicator.lineTo(x, axisY);
+    this.timeIndicator.stroke({ width: 2, color: COLORS.active });
 
     // Time label
     if (this.timeLabel) this.timeLabel.destroy();
-    this.timeLabel = new PIXI.Text(`${currentTime.toFixed(0)}ms`, {
-      fontFamily: 'Monaco, Consolas, monospace',
-      fontSize: 11,
-      fill: COLORS.active,
-      fontWeight: 'bold',
+    this.timeLabel = new PIXI.Text({
+      text: `${currentTime.toFixed(0)}ms`,
+      style: {
+        fontFamily: 'Monaco, Consolas, monospace',
+        fontSize: 11,
+        fill: COLORS.active,
+        fontWeight: 'bold',
+      }
     });
     this.timeLabel.anchor.set(0.5, 1);
     this.timeLabel.position.set(x, -5);

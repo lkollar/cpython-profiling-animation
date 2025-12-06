@@ -1,11 +1,11 @@
 :root {
-  font-family: 'Monaco', 'Consolas', monospace;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol';
   line-height: 1.5;
   font-weight: 400;
 
-  color-scheme: dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: #1E1E1E;
+  color-scheme: light;
+  color: #24292E;
+  background-color: #FAFAFA;
 
   font-synthesis: none;
   text-rendering: optimizeLegibility;
@@ -22,7 +22,7 @@ body {
   padding: 0;
   min-width: 320px;
   min-height: 100vh;
-  background-color: #1E1E1E;
+  background-color: #FAFAFA;
   overflow: hidden;
 }
 
@@ -42,84 +42,97 @@ canvas {
   bottom: 20px;
   left: 50%;
   transform: translateX(-50%);
-  background: rgba(42, 42, 42, 0.95);
-  padding: 16px 24px;
+  background: rgba(255, 255, 255, 0.95);
+  padding: 12px 20px;
   border-radius: 12px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
   display: flex;
-  gap: 24px;
+  gap: 20px;
   align-items: center;
   z-index: 1000;
-  border: 1px solid #3A3A3A;
+  border: 1px solid #E1E4E8;
+  backdrop-filter: blur(10px);
 }
 
 .control-group {
   display: flex;
-  gap: 12px;
+  gap: 10px;
   align-items: center;
 }
 
 .control-group label {
   font-size: 13px;
-  color: #CCCCCC;
+  color: #586069;
   margin: 0;
+  font-weight: 500;
 }
 
 .control-btn {
-  background: #4A90E2;
-  color: white;
-  border: none;
-  padding: 8px 16px;
+  background: #FFFFFF;
+  color: #24292E;
+  border: 1px solid #D1D5DA;
+  padding: 6px 14px;
   border-radius: 6px;
   cursor: pointer;
-  transition: all 0.2s;
-  font-family: 'Monaco', 'Consolas', monospace;
+  transition: all 0.2s ease;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
   font-size: 13px;
   font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .control-btn:hover {
-  background: #357ABD;
+  background: #F6F8FA;
+  border-color: #C8C9CB;
   transform: translateY(-1px);
-  box-shadow: 0 2px 8px rgba(74, 144, 226, 0.3);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
 .control-btn:active {
   transform: translateY(0);
+  background: #EFF3F6;
 }
 
 .control-btn.active {
-  background: #7ED321;
+  background: #3776AB;
+  color: white;
+  border-color: #3776AB;
 }
 
 .control-btn.active:hover {
-  background: #6BB91A;
+  background: #2F6493;
 }
 
 #speed-select {
-  background: #2A2A2A;
-  color: white;
-  border: 1px solid #3A3A3A;
-  padding: 6px 12px;
+  background: #FFFFFF;
+  color: #24292E;
+  border: 1px solid #D1D5DA;
+  padding: 6px 10px;
   border-radius: 6px;
   cursor: pointer;
-  font-family: 'Monaco', 'Consolas', monospace;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
   font-size: 13px;
+  outline: none;
 }
 
 #speed-select:hover {
-  border-color: #4A90E2;
+  border-color: #3776AB;
 }
 
 .timeline-scrubber {
   min-width: 250px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
 }
 
 #timeline-scrubber {
-  width: 100%;
-  height: 6px;
-  border-radius: 3px;
-  background: #3A3A3A;
+  flex: 1;
+  height: 4px;
+  border-radius: 2px;
+  background: #E1E4E8;
   outline: none;
   -webkit-appearance: none;
   cursor: pointer;
@@ -128,107 +141,123 @@ canvas {
 #timeline-scrubber::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
-  width: 16px;
-  height: 16px;
+  width: 14px;
+  height: 14px;
   border-radius: 50%;
-  background: #4A90E2;
+  background: #3776AB;
   cursor: pointer;
   transition: all 0.2s;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
 }
 
 #timeline-scrubber::-webkit-slider-thumb:hover {
-  background: #357ABD;
   transform: scale(1.2);
 }
 
 #timeline-scrubber::-moz-range-thumb {
-  width: 16px;
-  height: 16px;
+  width: 14px;
+  height: 14px;
   border-radius: 50%;
-  background: #4A90E2;
+  background: #3776AB;
   cursor: pointer;
   border: none;
   transition: all 0.2s;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
 }
 
 #timeline-scrubber::-moz-range-thumb:hover {
-  background: #357ABD;
   transform: scale(1.2);
 }
 
 #time-display {
   font-size: 12px;
-  color: #CCCCCC;
-  min-width: 120px;
+  color: #586069;
+  min-width: 60px;
   text-align: right;
+  font-variant-numeric: tabular-nums;
 }
 
 /* Landing page (index.html) */
 .landing {
-  max-width: 800px;
+  max-width: 900px;
   margin: 0 auto;
-  padding: 60px 20px;
+  padding: 80px 20px;
 }
 
 .landing h1 {
   font-size: 2.5em;
-  margin-bottom: 12px;
-  color: #4A90E2;
+  margin-bottom: 16px;
+  color: #24292E;
+  font-weight: 700;
+  letter-spacing: -0.5px;
 }
 
 .landing p {
-  font-size: 1.1em;
-  color: #CCCCCC;
-  margin-bottom: 40px;
+  font-size: 1.2em;
+  color: #586069;
+  margin-bottom: 48px;
+  line-height: 1.6;
 }
 
 .viz-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: 20px;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 24px;
   margin-top: 40px;
 }
 
 .viz-card {
-  background: #2A2A2A;
-  border: 1px solid #3A3A3A;
+  background: #FFFFFF;
+  border: 1px solid #E1E4E8;
   border-radius: 12px;
-  padding: 24px;
+  padding: 32px;
   text-decoration: none;
   color: inherit;
-  transition: all 0.3s;
+  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+  display: flex;
+  flex-direction: column;
+  height: 100%;
 }
 
 .viz-card:hover {
-  border-color: #4A90E2;
+  border-color: #3776AB;
   transform: translateY(-4px);
-  box-shadow: 0 8px 20px rgba(74, 144, 226, 0.2);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.08);
 }
 
 .viz-card h2 {
-  color: #4A90E2;
+  color: #3776AB;
   font-size: 1.4em;
   margin: 0 0 12px 0;
+  display: flex;
+  align-items: center;
 }
 
 .viz-card p {
-  color: #CCCCCC;
-  font-size: 0.95em;
+  color: #586069;
+  font-size: 1em;
   margin: 0;
   line-height: 1.6;
 }
 
 .viz-number {
-  display: inline-block;
-  width: 32px;
-  height: 32px;
-  background: #4A90E2;
-  color: white;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  background: #E1E4E8;
+  color: #586069;
   border-radius: 50%;
-  text-align: center;
-  line-height: 32px;
+  font-size: 14px;
   font-weight: bold;
   margin-right: 12px;
+  transition: all 0.3s;
+}
+
+.viz-card:hover .viz-number {
+  background: #3776AB;
+  color: white;
 }
 
 /* Code Panel Overlay (DOM-based for crisp text) */
@@ -244,19 +273,21 @@ canvas {
   line-height: 1.6;
   z-index: 100;
   pointer-events: none;
-  box-shadow: 2px 0 8px rgba(0, 0, 0, 0.05);
+  box-shadow: 2px 0 12px rgba(0, 0, 0, 0.03);
 }
 
 #code-panel .code-panel-title {
-  padding: 12px 16px;
-  font-size: 13px;
+  padding: 12px 20px;
+  font-size: 12px;
   font-weight: 600;
-  color: #6A737D;
+  color: #586069;
   border-bottom: 1px solid #E1E4E8;
   background: #FAFBFC;
   position: sticky;
   top: 0;
   z-index: 1;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 #code-panel .code-container {
@@ -268,18 +299,19 @@ canvas {
 #code-panel .line {
   display: flex;
   padding: 2px 0;
-  min-height: 20px;
-  transition: background-color 0.2s ease;
+  min-height: 22px;
+  transition: background-color 0.1s ease;
 }
 
 #code-panel .line-number {
   color: #959DA5;
-  min-width: 40px;
+  min-width: 48px;
   text-align: right;
   padding-right: 16px;
   padding-left: 16px;
   user-select: none;
   flex-shrink: 0;
+  font-size: 12px;
 }
 
 #code-panel .line-content {
@@ -290,34 +322,52 @@ canvas {
 }
 
 #code-panel .line.highlighted {
-  background: #FFF3CD;
+  background: #FFF8C5;
+  /* GitHub light yellow highlight */
+  border-left: 3px solid #D2A106;
+}
+
+#code-panel .line.highlighted .line-number {
+  color: #D2A106;
+  padding-left: 13px;
+  /* Adjust for border */
 }
 
 #code-panel .line.highlighted .line-content {
-  color: #856404;
-  font-weight: 500;
+  color: #24292E;
+  font-weight: 600;
 }
 
-/* Python Syntax Highlighting */
+/* Python Syntax Highlighting (GitHub Light Theme) */
 #code-panel .keyword {
   color: #D73A49;
+  /* Red */
   font-weight: 600;
 }
 
 #code-panel .function {
   color: #6F42C1;
+  /* Purple */
   font-weight: 600;
 }
 
 #code-panel .number {
   color: #005CC5;
+  /* Blue */
 }
 
 #code-panel .string {
   color: #032F62;
+  /* Dark Blue */
 }
 
 #code-panel .comment {
   color: #6A737D;
+  /* Gray */
   font-style: italic;
+}
+
+#code-panel .builtin {
+  color: #005CC5;
+  /* Blue */
 }

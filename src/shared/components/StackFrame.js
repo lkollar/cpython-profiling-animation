@@ -16,45 +16,49 @@ export class StackFrame extends PIXI.Container {
 
     // Drop shadow for depth
     const shadow = new PIXI.Graphics();
-    shadow.beginFill(0x000000, 0.1);
-    shadow.drawRoundedRect(2, 2, LAYOUT.frameWidth, LAYOUT.frameHeight, LAYOUT.frameRadius);
-    shadow.endFill();
-    shadow.filters = [new PIXI.BlurFilter(3)];
+    shadow.roundRect(2, 2, LAYOUT.frameWidth, LAYOUT.frameHeight, LAYOUT.frameRadius);
+    shadow.fill({ color: 0x000000, alpha: 0.1 });
+    shadow.filters = [new PIXI.BlurFilter({ strength: 3 })];
     this.addChild(shadow);
 
     // Background rectangle with border
     this.bg = new PIXI.Graphics();
-    this.bg.beginFill(color);
-    this.bg.lineStyle(1, COLORS.borderLight, 1);
-    this.bg.drawRoundedRect(0, 0, LAYOUT.frameWidth, LAYOUT.frameHeight, LAYOUT.frameRadius);
-    this.bg.endFill();
+    this.bg.roundRect(0, 0, LAYOUT.frameWidth, LAYOUT.frameHeight, LAYOUT.frameRadius);
+    this.bg.fill({ color: color });
+    this.bg.stroke({ width: 1, color: COLORS.borderLight, alpha: 1 });
     this.addChild(this.bg);
 
     // Highlight border (initially hidden, for hover)
     this.glow = new PIXI.Graphics();
-    this.glow.lineStyle(2, COLORS.borderHighlight, 0);
-    this.glow.drawRoundedRect(-1, -1, LAYOUT.frameWidth + 2, LAYOUT.frameHeight + 2, LAYOUT.frameRadius);
+    this.glow.roundRect(-1, -1, LAYOUT.frameWidth + 2, LAYOUT.frameHeight + 2, LAYOUT.frameRadius);
+    this.glow.stroke({ width: 2, color: COLORS.borderHighlight, alpha: 0 });
     this.addChildAt(this.glow, 0);
 
     // Function name text
     const displayName = args ? `${functionName}(${this._formatArgs(args)})` : functionName;
-    this.nameText = new PIXI.Text(displayName, {
-      fontFamily: 'SF Mono, Monaco, Consolas, monospace',
-      fontSize: 15,
-      fill: 0xFFFFFF,  // White text on colored background
-      fontWeight: 'bold',
-      resolution: 2,  // High resolution for crisp text
+    this.nameText = new PIXI.Text({
+      text: displayName,
+      style: {
+        fontFamily: 'SF Mono, Monaco, Consolas, monospace',
+        fontSize: 15,
+        fill: 0xFFFFFF,  // White text on colored background
+        fontWeight: 'bold',
+      }
     });
+    this.nameText.resolution = 2; // Set resolution directly on instance if needed, or in style options? v8 style options usually don't have resolution. Text instance has it.
     this.nameText.position.set(12, 12);
     this.addChild(this.nameText);
 
     // File info text
-    this.fileText = new PIXI.Text(`${filename}:${lineno}`, {
-      fontFamily: 'SF Mono, Monaco, Consolas, monospace',
-      fontSize: 11,
-      fill: 0xF0F0F0,  // Light gray text
-      resolution: 2,  // High resolution for crisp text
+    this.fileText = new PIXI.Text({
+      text: `${filename}:${lineno}`,
+      style: {
+        fontFamily: 'SF Mono, Monaco, Consolas, monospace',
+        fontSize: 11,
+        fill: 0xF0F0F0,  // Light gray text
+      }
     });
+    this.fileText.resolution = 2;
     this.fileText.position.set(12, 36);
     this.addChild(this.fileText);
 
@@ -64,6 +68,12 @@ export class StackFrame extends PIXI.Container {
 
     this.on('pointerover', this._onHover.bind(this));
     this.on('pointerout', this._onHoverOut.bind(this));
+  }
+
+  destroy(options) {
+    Tween.killTweensOf(this);
+    Tween.killTweensOf(this.glow);
+    super.destroy(options);
   }
 
   _getFunctionColor(funcName) {
@@ -116,9 +126,8 @@ export class StackFrame extends PIXI.Container {
   // Flash effect for sampling profiler
   flash(duration = 150) {
     const flashOverlay = new PIXI.Graphics();
-    flashOverlay.beginFill(0xFFFFFF, 0.4);
-    flashOverlay.drawRoundedRect(0, 0, LAYOUT.frameWidth, LAYOUT.frameHeight, LAYOUT.frameRadius);
-    flashOverlay.endFill();
+    flashOverlay.roundRect(0, 0, LAYOUT.frameWidth, LAYOUT.frameHeight, LAYOUT.frameRadius);
+    flashOverlay.fill({ color: 0xFFFFFF, alpha: 0.4 });
     this.addChild(flashOverlay);
 
     Tween.to(flashOverlay, { alpha: 0 }, duration, 'easeOutQuad', () => {
