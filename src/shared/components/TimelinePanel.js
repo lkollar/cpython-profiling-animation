@@ -43,6 +43,15 @@ export class TimelinePanel extends PIXI.Container {
     this.timelineContainer.addChild(this.timeIndicator);
   }
 
+  setDuration(duration) {
+    this.duration = duration;
+    this.timelineContainer.removeChildren();
+    this._drawAxis();
+    this.timeIndicator = new PIXI.Graphics();
+    this.timelineContainer.addChild(this.timeIndicator);
+    this.reset();
+  }
+
   _drawAxis() {
     const axisY = this.height - 60;
     const axisWidth = this.width - 40;

@@ -142,3 +142,45 @@ if __name__ == "__main__":
     ]},
   ],
 };
+
+export const DEMO_SIMPLE = {
+  source: `def calculate_sum(a, b):
+    result = a + b
+    return result
+
+def main():
+    x = 10
+    y = 20
+    total = calculate_sum(x, y)
+    print(f"Total is {total}")
+
+if __name__ == "__main__":
+    main()`,
+
+  trace: [
+    // Start script
+    { type: 'line', file: 'demo.py', line: 11, ts: 0 },
+    { type: 'line', file: 'demo.py', line: 12, ts: 100 },
+
+    // Call main
+    { type: 'call', func: 'main', file: 'demo.py', line: 5, ts: 200 },
+    { type: 'line', file: 'demo.py', line: 6, ts: 300 },
+    { type: 'line', file: 'demo.py', line: 7, ts: 400 },
+    { type: 'line', file: 'demo.py', line: 8, ts: 500 },
+
+    // Call calculate_sum
+    { type: 'call', func: 'calculate_sum', file: 'demo.py', line: 1, ts: 600, args: { a: 10, b: 20 } },
+    { type: 'line', file: 'demo.py', line: 2, ts: 700 },
+    { type: 'line', file: 'demo.py', line: 3, ts: 800 },
+    { type: 'return', func: 'calculate_sum', ts: 900, value: 30 },
+
+    // Back in main
+    { type: 'line', file: 'demo.py', line: 8, ts: 1000 },
+    { type: 'line', file: 'demo.py', line: 9, ts: 1100 },
+    { type: 'return', func: 'main', ts: 1200, value: null },
+
+    // Back to script
+    { type: 'line', file: 'demo.py', line: 12, ts: 1300 }
+  ],
+  samples: []
+};

@@ -31,6 +31,13 @@ export class CodePanel {
     document.body.appendChild(this.element);
   }
 
+  updateSource(source) {
+    this.source = source;
+    this.codeContainer.innerHTML = '';
+    this._renderSource();
+    this.currentLine = null;
+  }
+
   _renderSource() {
     const lines = this.source.split('\n');
 
