@@ -4,10 +4,35 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>cpython-profiling</title>
+    <title>CPython Profiling Visualizations</title>
+    <link rel="stylesheet" href="/src/style.css">
   </head>
   <body>
-    <div id="app"></div>
-    <script type="module" src="/src/main.js"></script>
+    <div class="landing">
+      <h1>CPython Profiling Visualizations</h1>
+      <p>Interactive visualizations explaining how sampling and tracing profilers work in CPython.</p>
+
+      <div class="viz-grid">
+        <a href="/public/1-execution.html" class="viz-card">
+          <h2><span class="viz-number">1</span>Code Execution</h2>
+          <p>Understand how Python code executes at the stack frame level, without any profiling overhead.</p>
+        </a>
+
+        <a href="/public/2-tracing.html" class="viz-card">
+          <h2><span class="viz-number">2</span>Tracing Profiler</h2>
+          <p>See how a tracing profiler instruments every function call and return, collecting exact timing data.</p>
+        </a>
+
+        <a href="/public/3-sampling.html" class="viz-card">
+          <h2><span class="viz-number">3</span>Sampling Profiler</h2>
+          <p>Learn how a sampling profiler periodically captures stack snapshots with minimal overhead.</p>
+        </a>
+
+        <a href="/public/4-flamegraph.html" class="viz-card">
+          <h2><span class="viz-number">4</span>Flame Graph</h2>
+          <p>Explore how sampling data builds a flame graph visualization to identify performance hotspots.</p>
+        </a>
+      </div>
+    </div>
   </body>
 </html>
