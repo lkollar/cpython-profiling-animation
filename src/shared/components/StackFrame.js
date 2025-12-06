@@ -82,6 +82,21 @@ export class StackFrame extends PIXI.Container {
     this.fileText.text = `${this.filename}:${lineno}`;
   }
 
+  setActive(isActive) {
+    if (this.isActive === isActive) return;
+    this.isActive = isActive;
+
+    if (isActive) {
+      // Highlight active frame with thicker border and glow
+      this.bg.stroke({ width: 3, color: COLORS.borderHighlight, alpha: 1 });
+      this.glow.alpha = 0.5; // Persistent glow for active frame
+    } else {
+      // Reset to normal
+      this.bg.stroke({ width: 1, color: COLORS.borderLight, alpha: 1 });
+      this.glow.alpha = 0;
+    }
+  }
+
   _getFunctionColor(funcName) {
     // Map function names to colors
     if (funcName === 'main') return COLORS.funcMain;

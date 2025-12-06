@@ -32,7 +32,13 @@ export class StackVisualization extends PIXI.Container {
 
   // Push a new frame onto the stack
   pushFrame(functionName, filename, lineno, args = null) {
+    // Deactivate current top frame
+    if (this.frames.length > 0) {
+      this.frames[this.frames.length - 1].setActive(false);
+    }
+
     const frame = new StackFrame(functionName, filename, lineno, args);
+    frame.setActive(true); // New frame is active
 
     // Calculate position (stack grows upward, but we render bottom-to-top)
     const targetY = this.frames.length * (LAYOUT.frameHeight + this.frameSpacing);
@@ -56,11 +62,19 @@ export class StackVisualization extends PIXI.Container {
     frame.animateOut(TIMINGS.frameSlideOut, () => {
       this._repositionFrames();
     });
+
+    // Activate the new top frame
+    if (this.frames.length > 0) {
+      this.frames[this.frames.length - 1].setActive(true);
+    }
   }
 
   // Clear all frames
   clear() {
-    this.frames.forEach(frame => frame.destroy());
+    // Destroy all children to ensure animating-out frames are also removed
+    // This fixes the "ghosting" issue where popped frames that were animating out
+    // weren't in this.frames but were still in the container
+    this.removeChildren().forEach(child => child.destroy());
     this.frames = [];
   }
 
@@ -87,10 +101,16 @@ export class StackVisualization extends PIXI.Container {
     // For now, rebuild entire stack
     this.clear();
 
-    targetStack.forEach(({ func, file, line, args }) => {
+    targetStack.forEach(({ func, file, line, args }, index) => {
       const frame = new StackFrame(func, file, line, args);
       const y = this.frames.length * (LAYOUT.frameHeight + this.frameSpacing);
       frame.position.set(0, y);
+      
+      // Set active state for the top frame
+      if (index === targetStack.length - 1) {
+        frame.setActive(true);
+      }
+
       this.addChild(frame);
       this.frames.push(frame);
     });
