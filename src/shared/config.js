@@ -35,23 +35,23 @@ export const COLORS = {
 };
 
 export const TIMINGS = {
-  frameSlideIn: 300,        // ms
-  frameSlideOut: 200,       // ms
-  frameFadeOut: 150,        // ms
+  frameSlideIn: 500,        // ms
+  frameSlideOut: 300,       // ms
+  frameFadeOut: 200,        // ms
 
   // Sampling profiler
-  sampleFlash: 150,         // ms
+  sampleFlash: 200,         // ms
   sampleInterval: 10,       // ms (configurable)
-  sampleToFlame: 400,       // particle travel time
-  flameGrowth: 200,         // rect width expansion
+  sampleToFlame: 600,       // particle travel time
+  flameGrowth: 300,         // rect width expansion
 
   // Tracing profiler
-  hookDelay: 5,             // simulated instrumentation cost
-  eventLightDuration: 100,  // LED flash time
+  hookDelay: 10,            // simulated instrumentation cost
+  eventLightDuration: 150,  // LED flash time
 
   // Playback speeds
-  speeds: [0.25, 0.5, 1, 2, 5, 10],
-  defaultSpeed: 1,
+  speeds: [0.1, 0.25, 0.5, 1, 2, 5],
+  defaultSpeed: 0.5,
 };
 
 export const LAYOUT = {

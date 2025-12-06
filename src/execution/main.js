@@ -6,6 +6,7 @@ import { StackVisualization } from '../shared/components/StackVisualization.js';
 import { TimelinePanel } from '../shared/components/TimelinePanel.js';
 import { ControlPanel } from '../shared/components/ControlPanel.js';
 import { Tween } from '../shared/utils/AnimationUtils.js';
+import { TIMINGS } from '../shared/config.js';
 
 class ExecutionVisualization {
   constructor(app) {
@@ -15,7 +16,7 @@ class ExecutionVisualization {
     // Playback state
     this.currentTime = 0;
     this.isPlaying = false;
-    this.playbackSpeed = 1;
+    this.playbackSpeed = TIMINGS.defaultSpeed;
     this.eventIndex = 0;
 
     // Calculate layout
