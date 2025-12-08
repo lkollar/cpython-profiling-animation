@@ -1,11 +1,11 @@
+import * as PIXI from 'pixi.js';
 import { Application } from 'pixi.js';
 import { DEMO_FIBONACCI, DEMO_SIMPLE } from '../shared/data/demoData.js';
 import { ExecutionTrace } from '../shared/models/ExecutionTrace.js';
 import { CodePanel } from '../shared/components/CodePanel.js';
 import { StackVisualization } from '../shared/components/StackVisualization.js';
-import { TimelinePanel } from '../shared/components/TimelinePanel.js';
+import { SamplingPanel } from '../shared/components/SamplingPanel.js';
 import { ControlPanel } from '../shared/components/ControlPanel.js';
-import { ProfilerGate } from './ProfilerGate.js';
 import { Tween } from '../shared/utils/AnimationUtils.js';
 import { TIMINGS } from '../shared/config.js';
 
@@ -22,20 +22,17 @@ class TracingVisualization {
     this.playbackSpeed = TIMINGS.defaultSpeed;
     this.eventIndex = 0;
     
-    // Tracing specific state
-    this.profilerLag = 0; // Accumulated overhead delay in ms
-    this.profilerData = {}; // Key: "func:file", Value: { ncalls, tottime, cumtime }
-    this.activeProfilerStack = []; // [{ key, startTime, childrenTime }]
+    // Sampling state
+    this.sampleInterval = TIMINGS.sampleIntervalDefault;
+    this.lastSampleTime = 0;
 
     // Calculate layout
     this.width = app.screen.width;
     this.height = app.screen.height - 100; // Leave space for controls
 
-    // Adjusted layout for Gate
     const codePanelWidth = this.width * 0.3;
-    const gateWidth = 100;
-    const stackPanelWidth = this.width * 0.4;
-    const timelinePanelWidth = this.width - codePanelWidth - gateWidth - stackPanelWidth;
+    const stackPanelWidth = this.width * 0.35;
+    const samplingPanelWidth = this.width - codePanelWidth - stackPanelWidth;
 
     // Create components
     this.codePanel = new CodePanel(
@@ -44,22 +41,24 @@ class TracingVisualization {
       this.height
     );
 
-    // Profiler Gate (Between Code and Stack)
-    this.profilerGate = new ProfilerGate(gateWidth, this.height);
-    this.profilerGate.position.set(codePanelWidth, 0);
-    app.stage.addChild(this.profilerGate);
-
     this.stackViz = new StackVisualization();
-    this.stackViz.position.set(codePanelWidth + gateWidth + 20, 50);
+    this.stackViz.position.set(codePanelWidth + 20, 50);
     app.stage.addChild(this.stackViz);
 
-    this.timelinePanel = new TimelinePanel(
-      timelinePanelWidth - 20,
-      this.height,
-      this.trace.duration
+    this.samplingPanel = new SamplingPanel(
+      samplingPanelWidth - 20,
+      this.height
     );
-    this.timelinePanel.position.set(codePanelWidth + gateWidth + stackPanelWidth, 0);
-    app.stage.addChild(this.timelinePanel);
+    this.samplingPanel.position.set(codePanelWidth + stackPanelWidth, 0);
+    this.samplingPanel.setGroundTruth(this._getGroundTruthFunctions());
+    app.stage.addChild(this.samplingPanel);
+
+    // Flash overlay for sampling
+    this.flashOverlay = new PIXI.Graphics();
+    this.flashOverlay.rect(0, 0, this.width, this.height);
+    this.flashOverlay.fill({ color: 0xFFFFFF });
+    this.flashOverlay.alpha = 0;
+    app.stage.addChild(this.flashOverlay);
 
     // Create control panel
     this.controls = new ControlPanel(
@@ -69,7 +68,8 @@ class TracingVisualization {
       () => this.reset(),
       (speed) => this.setSpeed(speed),
       (progress) => this.seek(progress),
-      () => this.step()
+      () => this.step(),
+      (interval) => this.setSampleInterval(interval)
     );
     this.controls.setDuration(this.trace.duration);
 
@@ -134,12 +134,28 @@ class TracingVisualization {
   loadTrace(demoData) {
     this.pause();
     this.trace = new ExecutionTrace(demoData.source, demoData.trace);
-    
+
     this.codePanel.updateSource(this.trace.source);
-    this.timelinePanel.setDuration(this.trace.duration);
+    this.samplingPanel.setGroundTruth(this._getGroundTruthFunctions());
     this.controls.setDuration(this.trace.duration);
-    
+
     this.reset();
+  }
+
+  setSampleInterval(interval) {
+    this.sampleInterval = interval;
+    this.samplingPanel.setSampleInterval(interval);
+  }
+
+  _getGroundTruthFunctions() {
+    // Extract all unique function names from trace events
+    const functions = new Set();
+    this.trace.events.forEach(event => {
+      if (event.type === 'call') {
+        functions.add(event.functionName);
+      }
+    });
+    return [...functions];
   }
 
   play() {
@@ -153,15 +169,11 @@ class TracingVisualization {
   reset() {
     this.currentTime = 0;
     this.eventIndex = 0;
-    this.profilerLag = 0;
-    this.isBlocked = false;
-    this.profilerData = {};
-    this.activeProfilerStack = [];
     this.isPlaying = false;
+    this.lastSampleTime = 0;
     this.stackViz.clear();
     this.codePanel.reset();
-    this.timelinePanel.reset();
-    this.profilerGate.reset();
+    this.samplingPanel.reset();
     this.controls.updateTimeDisplay(0, this.trace.duration);
   }
 
@@ -172,8 +184,7 @@ class TracingVisualization {
   seek(progress) {
     this.currentTime = progress * this.trace.duration;
     this.eventIndex = 0;
-    this.profilerLag = 0;
-    this.isBlocked = false;
+    this.lastSampleTime = 0;
     this._rebuildState();
   }
 
@@ -199,12 +210,6 @@ class TracingVisualization {
       return;
     }
 
-    // Handle Profiler Lag (Overhead)
-    // If we are blocked by the gate, do not advance time.
-    if (this.isBlocked) {
-        return;
-    }
-
     // Advance time
     this.currentTime += deltaTime * this.playbackSpeed;
 
@@ -223,127 +228,24 @@ class TracingVisualization {
         break;
       }
 
-      // If it's a call/return, we must BLOCK execution to show the hook
-      if (event.type === 'call' || event.type === 'return') {
-          this._triggerBlockingHook(event);
-          // We stop processing further events until the hook is done.
-          // We also need to pause the currentTime advancement in the next frame.
-          this.isBlocked = true;
-          break; 
-      }
-
       this._processEvent(event);
       this.eventIndex++;
     }
 
     // Update UI
     this.controls.updateTimeDisplay(this.currentTime, this.trace.duration);
-    this.timelinePanel.updateTimeIndicator(this.currentTime);
 
-    // Update live stats on stack frames
-    this.activeProfilerStack.forEach((frameData, index) => {
-        const frame = this.stackViz.getFrame(index);
-        if (frame) {
-            const currentDuration = this.currentTime - frameData.startTime;
-            const key = frameData.key;
-            const baseStats = this.profilerData[key];
-            
-            // profilerData stores accumulated time from COMPLETED calls.
-            // But for the current active call, we need to add the current duration.
-            // However, if this function has been called before, baseStats.cumtime has value.
-            // So liveCumTime = baseStats.cumtime + currentDuration.
-            // Correct.
-            
-            const liveCumTime = baseStats.cumtime + currentDuration;
-            const liveTotTime = baseStats.tottime + (currentDuration - frameData.childrenTime);
-            
-            frame.updateStats(baseStats.ncalls, liveTotTime, liveCumTime);
-        }
-    });
-  }
-
-  async _triggerBlockingHook(event) {
-    // 1. Trigger the gate animation (returns a promise)
-    await this.profilerGate.blockAndPass(event.type);
-    
-    // 2. Once done, process the event
-    this._processEvent(event);
-    this.eventIndex++;
-    
-    // 3. Unblock
-    this.isBlocked = false;
+    // Take samples at configured interval
+    if (this.currentTime - this.lastSampleTime >= this.sampleInterval) {
+      this._takeSample();
+      this.lastSampleTime = this.currentTime;
+    }
   }
 
   _processEvent(event) {
-    // Add to timeline (skip line events)
-    if (event.type !== 'line') {
-      this.timelinePanel.addEvent(event);
-      
-      // Note: ProfilerGate activation is now handled by _triggerBlockingHook
-      // We don't call activate() here anymore to avoid double activation
-    }
-
-    // Update Profiler Stats
-    if (event.type === 'call') {
-        const key = `${event.functionName}:${event.filename}`;
-        if (!this.profilerData[key]) this.profilerData[key] = { ncalls: 0, tottime: 0, cumtime: 0 };
-        
-        this.profilerData[key].ncalls++;
-        
-        this.activeProfilerStack.push({
-            key: key,
-            startTime: this.currentTime,
-            childrenTime: 0
-        });
-    } else if (event.type === 'return') {
-        const frame = this.activeProfilerStack.pop();
-        if (frame) {
-            const duration = this.currentTime - frame.startTime;
-            this.profilerData[frame.key].cumtime += duration;
-            this.profilerData[frame.key].tottime += (duration - frame.childrenTime);
-            
-            if (this.activeProfilerStack.length > 0) {
-                const parent = this.activeProfilerStack[this.activeProfilerStack.length - 1];
-                parent.childrenTime += duration;
-            }
-        }
-    }
-
-    // Update stack
+    // Update stack visualization
     this.stackViz.processEvent(event);
 
-    // Update stack frame stats
-    // We need to update the stats on the stack frames.
-    // Since we just updated the data, we can iterate over the active stack and update them?
-    // Or just update the top frame?
-    // Actually, ncalls updates on call. cumtime/tottime update on return.
-    // So on call, we update the new frame.
-    // On return, we update the returning frame (which is about to disappear, so maybe not useful?)
-    // But we might want to see the final stats before it pops?
-    // StackVisualization pops immediately on 'return'.
-    // So we should update stats BEFORE processing the event in StackViz?
-    // No, StackViz.processEvent handles the push/pop.
-    
-    // If 'call', StackViz pushes a frame. We can then get it and update stats.
-    if (event.type === 'call') {
-        const key = `${event.functionName}:${event.filename}`;
-        const stats = this.profilerData[key];
-        // The frame was just pushed, so it's at the top.
-        const frameIndex = this.stackViz.getStackHeight() - 1;
-        const frame = this.stackViz.getFrame(frameIndex);
-        if (frame) {
-            frame.updateStats(stats.ncalls, stats.tottime, stats.cumtime);
-        }
-    }
-    // If 'return', the frame is popped. We can't update it easily unless we do it before pop.
-    // But the stats are updated on return.
-    // Maybe we don't need to show the final stats on the popping frame, 
-    // but we should update the stats for the *next* time it appears?
-    // Or maybe we want to see the stats accumulating on the frame while it's active?
-    // cumtime increases while active. tottime increases while active (if not in child).
-    // To show "live" timer, we would need to update in the `update` loop.
-    // That would be cool!
-    
     // Highlight current line
     if (event.type === 'call') {
       this.codePanel.highlightLine(event.lineno);
@@ -359,72 +261,41 @@ class TracingVisualization {
     }
   }
 
+  _takeSample() {
+    // Flash the background
+    this.flashOverlay.alpha = 0.3;
+    Tween.to(this.flashOverlay, { alpha: 0 }, 150, 'easeOutQuad');
+
+    // Get current stack state
+    const stack = this.trace.getStackAt(this.currentTime);
+
+    // Record snapshot in SamplingPanel
+    this.samplingPanel.addSample(stack);
+  }
+
   _rebuildState() {
     this.stackViz.clear();
     this.codePanel.reset();
-    this.timelinePanel.reset();
-    this.profilerGate.reset();
-    
-    // Reset profiler state
-    this.profilerData = {};
-    this.activeProfilerStack = [];
+    this.samplingPanel.reset();
 
-    // Replay ALL events up to current time to rebuild stats
     const events = this.trace.getEventsUntil(this.currentTime);
-    
-    events.forEach(event => {
-        // Update Profiler Stats
-        if (event.type === 'call') {
-            const key = `${event.functionName}:${event.filename}`;
-            if (!this.profilerData[key]) this.profilerData[key] = { ncalls: 0, tottime: 0, cumtime: 0 };
-            this.profilerData[key].ncalls++;
-            this.activeProfilerStack.push({
-                key: key,
-                startTime: event.timestamp,
-                childrenTime: 0
-            });
-        } else if (event.type === 'return') {
-            const frame = this.activeProfilerStack.pop();
-            if (frame) {
-                const duration = event.timestamp - frame.startTime;
-                this.profilerData[frame.key].cumtime += duration;
-                this.profilerData[frame.key].tottime += (duration - frame.childrenTime);
-                if (this.activeProfilerStack.length > 0) {
-                    const parent = this.activeProfilerStack[this.activeProfilerStack.length - 1];
-                    parent.childrenTime += duration;
-                }
-            }
-        }
-        
-        // Add to timeline (skip line events)
-        if (event.type !== 'line') {
-            this.timelinePanel.addEvent(event);
-        }
-    });
+
+    // Rebuild sampling state - retake samples up to current time
+    for (let t = 0; t < this.currentTime; t += this.sampleInterval) {
+      const stack = this.trace.getStackAt(t);
+      this.samplingPanel.addSample(stack);
+      this.lastSampleTime = t;
+    }
 
     // Update Stack Viz to match current state
     const stack = this.trace.getStackAt(this.currentTime);
     this.stackViz.updateToMatch(stack);
-    
-    // Update stats on the visual stack frames
-    this.activeProfilerStack.forEach((frameData, index) => {
-        const frame = this.stackViz.getFrame(index);
-        if (frame) {
-            const currentDuration = this.currentTime - frameData.startTime;
-            const key = frameData.key;
-            const baseStats = this.profilerData[key];
-            const liveCumTime = baseStats.cumtime + currentDuration;
-            const liveTotTime = baseStats.tottime + (currentDuration - frameData.childrenTime);
-            frame.updateStats(baseStats.ncalls, liveTotTime, liveCumTime);
-        }
-    });
 
     // Highlight current line
     if (stack.length > 0) {
       this.codePanel.highlightLine(stack[stack.length - 1].line);
     }
 
-    this.timelinePanel.updateTimeIndicator(this.currentTime);
     this.eventIndex = events.length;
   }
 }

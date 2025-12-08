@@ -3,7 +3,7 @@
 import { TIMINGS } from '../config.js';
 
 export class ControlPanel {
-  constructor(container, onPlay, onPause, onReset, onSpeedChange, onSeek, onStep) {
+  constructor(container, onPlay, onPause, onReset, onSpeedChange, onSeek, onStep, onSampleIntervalChange = null) {
     this.container = container;
     this.onPlay = onPlay;
     this.onPause = onPause;
@@ -11,6 +11,7 @@ export class ControlPanel {
     this.onSpeedChange = onSpeedChange;
     this.onSeek = onSeek;
     this.onStep = onStep;
+    this.onSampleIntervalChange = onSampleIntervalChange;
 
     this.isPlaying = false;
     this.speed = TIMINGS.defaultSpeed;
@@ -22,6 +23,18 @@ export class ControlPanel {
     // Create control panel HTML
     const panel = document.createElement('div');
     panel.id = 'control-panel';
+    const sampleIntervalHtml = this.onSampleIntervalChange ? `
+      <div class="control-group">
+        <label>Sample:</label>
+        <input type="range" id="sample-interval"
+               min="${TIMINGS.sampleIntervalMin}"
+               max="${TIMINGS.sampleIntervalMax}"
+               value="${TIMINGS.sampleIntervalDefault}"
+               step="10">
+        <span id="interval-display">${TIMINGS.sampleIntervalDefault}ms</span>
+      </div>
+    ` : '';
+
     panel.innerHTML = `
       <div class="control-group">
         <button id="play-pause-btn" class="control-btn">▶ Play</button>
@@ -35,6 +48,8 @@ export class ControlPanel {
           ${TIMINGS.speeds.map(s => `<option value="${s}" ${s === TIMINGS.defaultSpeed ? 'selected' : ''}>${s}x</option>`).join('')}
         </select>
       </div>
+
+      ${sampleIntervalHtml}
 
       <div class="control-group timeline-scrubber">
         <input type="range" id="timeline-scrubber" min="0" max="100" value="0" step="0.1">
@@ -57,6 +72,19 @@ export class ControlPanel {
     this.stepBtn.addEventListener('click', () => this._handleStep());
     this.speedSelect.addEventListener('change', (e) => this._handleSpeedChange(e));
     this.scrubber.addEventListener('input', (e) => this._handleSeek(e));
+
+    // Sample interval slider (optional)
+    if (this.onSampleIntervalChange) {
+      this.sampleIntervalSlider = document.getElementById('sample-interval');
+      this.intervalDisplay = document.getElementById('interval-display');
+      this.sampleIntervalSlider.addEventListener('input', (e) => this._handleSampleIntervalChange(e));
+    }
+  }
+
+  _handleSampleIntervalChange(e) {
+    const interval = parseInt(e.target.value);
+    this.intervalDisplay.textContent = `${interval}ms`;
+    this.onSampleIntervalChange(interval);
   }
 
   _togglePlayPause() {

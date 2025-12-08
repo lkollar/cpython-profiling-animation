@@ -41,7 +41,9 @@ export const TIMINGS = {
 
   // Sampling profiler
   sampleFlash: 200,         // ms
-  sampleInterval: 10,       // ms (configurable)
+  sampleIntervalMin: 10,    // ms
+  sampleIntervalMax: 500,   // ms
+  sampleIntervalDefault: 100, // ms
   sampleToFlame: 600,       // particle travel time
   flameGrowth: 300,         // rect width expansion
 
@@ -56,10 +58,10 @@ export const TIMINGS = {
 
 export const LAYOUT = {
   // Stack frame dimensions
-  frameWidth: 300,
-  frameHeight: 60,
-  frameSpacing: 10,
-  frameRadius: 8,
+  frameWidth: 200,
+  frameHeight: 40,
+  frameSpacing: 6,
+  frameRadius: 4,
 
   // Code panel
   codePanelWidth: 0.3,    // 30% of viewport

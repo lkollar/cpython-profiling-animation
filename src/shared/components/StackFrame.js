@@ -20,34 +20,19 @@ export class StackFrame extends PIXI.Container {
     this.bg.fill({ color: color });
     this.addChild(this.bg);
 
-    // Function name text (Simplified)
-    const displayName = args ? `${functionName}(${this._formatArgs(args)})` : functionName;
+    // Function name + line number
     this.nameText = new PIXI.Text({
-      text: displayName,
+      text: `${functionName}:${lineno}`,
       style: {
-        fontFamily: 'system-ui, sans-serif',
-        fontSize: 14,
+        fontFamily: 'SF Mono, Monaco, Consolas, monospace',
+        fontSize: 12,
         fill: 0xFFFFFF,
         fontWeight: '600',
       }
     });
     this.nameText.resolution = 2;
-    this.nameText.position.set(10, 10);
+    this.nameText.position.set(8, LAYOUT.frameHeight / 2 - 8);
     this.addChild(this.nameText);
-
-    // Profiler Stats Text (Simplified)
-    this.statsText = new PIXI.Text({
-      text: '',
-      style: {
-        fontFamily: 'Monaco, Consolas, monospace',
-        fontSize: 11,
-        fill: 0xFFFFFF,
-        align: 'right',
-      }
-    });
-    this.statsText.anchor.set(1, 0.5);
-    this.statsText.position.set(LAYOUT.frameWidth - 10, LAYOUT.frameHeight / 2);
-    this.addChild(this.statsText);
 
     // Set interactive
     this.eventMode = 'static';
@@ -65,15 +50,7 @@ export class StackFrame extends PIXI.Container {
   // Update the line number displayed
   updateLine(lineno) {
     this.lineno = lineno;
-    // No file text to update
-  }
-
-  // Update profiler stats
-  updateStats(ncalls, tottime, cumtime) {
-    // Format times (ms)
-    const tot = tottime.toFixed(0);
-    const cum = cumtime.toFixed(0);
-    this.statsText.text = `${ncalls} calls | ${cum}ms`;
+    this.nameText.text = `${this.functionName}:${lineno}`;
   }
 
   setActive(isActive) {
@@ -96,14 +73,10 @@ export class StackFrame extends PIXI.Container {
     // Map function names to colors
     if (funcName === 'main') return COLORS.funcMain;
     if (funcName === 'fibonacci') return COLORS.funcFibonacci;
+    if (funcName === 'add') return 0xE36209;      // Orange
+    if (funcName === 'multiply') return 0x6F42C1; // Purple
+    if (funcName === 'calculate') return COLORS.funcFibonacci;
     return COLORS.info;
-  }
-
-  _formatArgs(args) {
-    if (!args) return '';
-    return Object.entries(args)
-      .map(([key, value]) => `${key}=${value}`)
-      .join(', ');
   }
 
   _onHover() {
@@ -119,7 +92,7 @@ export class StackFrame extends PIXI.Container {
   }
 
   animateIn(targetY, duration = 300) {
-    this.position.set(0, targetY + 80);
+    this.position.set(0, targetY + 50);
     this.alpha = 0;
 
     Tween.to(this, {
@@ -130,7 +103,7 @@ export class StackFrame extends PIXI.Container {
 
   animateOut(duration = 200, onComplete = null) {
     Tween.to(this, {
-      position: { y: this.position.y + 50 },
+      position: { y: this.position.y + 30 },
       alpha: 0
     }, duration, 'easeInQuad', () => {
       this.destroy();

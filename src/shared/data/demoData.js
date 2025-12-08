@@ -144,43 +144,93 @@ if __name__ == "__main__":
 };
 
 export const DEMO_SIMPLE = {
-  source: `def calculate_sum(a, b):
-    result = a + b
+  source: `def add(a, b):
+    return a + b
+
+def multiply(x, y):
+    result = 0
+    for i in range(y):
+        result = add(result, x)
     return result
 
+def calculate(a, b):
+    sum_val = add(a, b)
+    product = multiply(a, b)
+    return sum_val + product
+
 def main():
-    x = 10
-    y = 20
-    total = calculate_sum(x, y)
-    print(f"Total is {total}")
+    result = calculate(3, 4)
+    print(f"Result: {result}")
 
 if __name__ == "__main__":
     main()`,
 
   trace: [
     // Start script
-    { type: 'line', file: 'demo.py', line: 11, ts: 0 },
-    { type: 'line', file: 'demo.py', line: 12, ts: 100 },
+    { type: 'line', file: 'demo.py', line: 20, ts: 0 },
+    { type: 'line', file: 'demo.py', line: 21, ts: 50 },
 
     // Call main
-    { type: 'call', func: 'main', file: 'demo.py', line: 5, ts: 200 },
-    { type: 'line', file: 'demo.py', line: 6, ts: 300 },
-    { type: 'line', file: 'demo.py', line: 7, ts: 400 },
-    { type: 'line', file: 'demo.py', line: 8, ts: 500 },
+    { type: 'call', func: 'main', file: 'demo.py', line: 16, ts: 100 },
+    { type: 'line', file: 'demo.py', line: 17, ts: 150 },
 
-    // Call calculate_sum
-    { type: 'call', func: 'calculate_sum', file: 'demo.py', line: 1, ts: 600, args: { a: 10, b: 20 } },
-    { type: 'line', file: 'demo.py', line: 2, ts: 700 },
-    { type: 'line', file: 'demo.py', line: 3, ts: 800 },
-    { type: 'return', func: 'calculate_sum', ts: 900, value: 30 },
+    // Call calculate(3, 4)
+    { type: 'call', func: 'calculate', file: 'demo.py', line: 11, ts: 200, args: { a: 3, b: 4 } },
+    { type: 'line', file: 'demo.py', line: 12, ts: 250 },
+
+    // Call add(3, 4) from calculate
+    { type: 'call', func: 'add', file: 'demo.py', line: 1, ts: 300, args: { a: 3, b: 4 } },
+    { type: 'line', file: 'demo.py', line: 2, ts: 350 },
+    { type: 'return', func: 'add', ts: 400, value: 7 },
+
+    // Back in calculate, call multiply
+    { type: 'line', file: 'demo.py', line: 13, ts: 450 },
+    { type: 'call', func: 'multiply', file: 'demo.py', line: 4, ts: 500, args: { x: 3, y: 4 } },
+    { type: 'line', file: 'demo.py', line: 5, ts: 550 },
+    { type: 'line', file: 'demo.py', line: 6, ts: 600 },
+
+    // Loop iteration 1: add(0, 3)
+    { type: 'line', file: 'demo.py', line: 7, ts: 650 },
+    { type: 'call', func: 'add', file: 'demo.py', line: 1, ts: 700, args: { a: 0, b: 3 } },
+    { type: 'line', file: 'demo.py', line: 2, ts: 750 },
+    { type: 'return', func: 'add', ts: 800, value: 3 },
+
+    // Loop iteration 2: add(3, 3)
+    { type: 'line', file: 'demo.py', line: 6, ts: 850 },
+    { type: 'line', file: 'demo.py', line: 7, ts: 900 },
+    { type: 'call', func: 'add', file: 'demo.py', line: 1, ts: 950, args: { a: 3, b: 3 } },
+    { type: 'line', file: 'demo.py', line: 2, ts: 1000 },
+    { type: 'return', func: 'add', ts: 1050, value: 6 },
+
+    // Loop iteration 3: add(6, 3)
+    { type: 'line', file: 'demo.py', line: 6, ts: 1100 },
+    { type: 'line', file: 'demo.py', line: 7, ts: 1150 },
+    { type: 'call', func: 'add', file: 'demo.py', line: 1, ts: 1200, args: { a: 6, b: 3 } },
+    { type: 'line', file: 'demo.py', line: 2, ts: 1250 },
+    { type: 'return', func: 'add', ts: 1300, value: 9 },
+
+    // Loop iteration 4: add(9, 3)
+    { type: 'line', file: 'demo.py', line: 6, ts: 1350 },
+    { type: 'line', file: 'demo.py', line: 7, ts: 1400 },
+    { type: 'call', func: 'add', file: 'demo.py', line: 1, ts: 1450, args: { a: 9, b: 3 } },
+    { type: 'line', file: 'demo.py', line: 2, ts: 1500 },
+    { type: 'return', func: 'add', ts: 1550, value: 12 },
+
+    // End loop, return from multiply
+    { type: 'line', file: 'demo.py', line: 6, ts: 1600 },
+    { type: 'line', file: 'demo.py', line: 8, ts: 1650 },
+    { type: 'return', func: 'multiply', ts: 1700, value: 12 },
+
+    // Back in calculate, return
+    { type: 'line', file: 'demo.py', line: 14, ts: 1750 },
+    { type: 'return', func: 'calculate', ts: 1800, value: 19 },
 
     // Back in main
-    { type: 'line', file: 'demo.py', line: 8, ts: 1000 },
-    { type: 'line', file: 'demo.py', line: 9, ts: 1100 },
-    { type: 'return', func: 'main', ts: 1200, value: null },
+    { type: 'line', file: 'demo.py', line: 18, ts: 1850 },
+    { type: 'return', func: 'main', ts: 1900, value: null },
 
     // Back to script
-    { type: 'line', file: 'demo.py', line: 12, ts: 1300 }
+    { type: 'line', file: 'demo.py', line: 21, ts: 1950 }
   ],
   samples: []
 };
