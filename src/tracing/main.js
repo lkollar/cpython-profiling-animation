@@ -26,14 +26,15 @@ class TracingVisualization {
     this.sampleInterval = TIMINGS.sampleIntervalDefault;
     this.lastSampleTime = 0;
 
-    // Calculate layout
+    // Calculate layout - optimized for documentation embedding
     this.width = app.screen.width;
     this.height = app.screen.height - 100; // Leave space for controls
 
-    const codePanelWidth = this.width * 0.4;
-    const centerColumnWidth = this.width * 0.3;
-    const stackHeight = this.height * 0.5;
-    const samplingHeight = this.height * 0.5;
+    // Tighter proportions for embedded view
+    const codePanelWidth = Math.min(this.width * 0.35, 400);
+    const centerColumnWidth = 450; // Fixed width for consistent layout
+    const stackHeight = this.height * 0.45;
+    const samplingHeight = this.height * 0.55;
 
     // Center column starts after code panel
     const centerColumnStart = codePanelWidth;
@@ -54,7 +55,7 @@ class TracingVisualization {
       centerColumnWidth - 40,
       samplingHeight
     );
-    this.samplingPanel.position.set(centerColumnStart + 20, stackHeight + 20);
+    this.samplingPanel.position.set(centerColumnStart + 20, stackHeight + 50);
     this.samplingPanel.setGroundTruth(this._getGroundTruthFunctions());
     app.stage.addChild(this.samplingPanel);
 
