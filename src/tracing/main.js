@@ -30,9 +30,13 @@ class TracingVisualization {
     this.width = app.screen.width;
     this.height = app.screen.height - 100; // Leave space for controls
 
-    const codePanelWidth = this.width * 0.3;
-    const stackPanelWidth = this.width * 0.35;
-    const samplingPanelWidth = this.width - codePanelWidth - stackPanelWidth;
+    const codePanelWidth = this.width * 0.4;
+    const centerColumnWidth = this.width * 0.3;
+    const stackHeight = this.height * 0.5;
+    const samplingHeight = this.height * 0.5;
+
+    // Center column starts after code panel
+    const centerColumnStart = codePanelWidth;
 
     // Create components
     this.codePanel = new CodePanel(
@@ -42,14 +46,15 @@ class TracingVisualization {
     );
 
     this.stackViz = new StackVisualization();
-    this.stackViz.position.set(codePanelWidth + 20, 50);
+    // Center stack frames in the middle column (stack frames are ~200px wide from LAYOUT.frameWidth)
+    this.stackViz.position.set(centerColumnStart + (centerColumnWidth - 200) / 2, 50);
     app.stage.addChild(this.stackViz);
 
     this.samplingPanel = new SamplingPanel(
-      samplingPanelWidth - 20,
-      this.height
+      centerColumnWidth - 40,
+      samplingHeight
     );
-    this.samplingPanel.position.set(codePanelWidth + stackPanelWidth, 0);
+    this.samplingPanel.position.set(centerColumnStart + 20, stackHeight + 20);
     this.samplingPanel.setGroundTruth(this._getGroundTruthFunctions());
     app.stage.addChild(this.samplingPanel);
 
