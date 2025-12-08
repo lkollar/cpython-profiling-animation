@@ -53,7 +53,7 @@ export const TIMINGS = {
 
   // Playback speeds
   speeds: [0.1, 0.25, 0.5, 1, 2, 5],
-  defaultSpeed: 0.5,
+  defaultSpeed: 0.1,
 };
 
 export const LAYOUT = {

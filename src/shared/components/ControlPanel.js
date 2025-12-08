@@ -42,13 +42,6 @@ export class ControlPanel {
         <button id="step-btn" class="control-btn">→ Step</button>
       </div>
 
-      <div class="control-group">
-        <label>Speed:</label>
-        <select id="speed-select">
-          ${TIMINGS.speeds.map(s => `<option value="${s}" ${s === TIMINGS.defaultSpeed ? 'selected' : ''}>${s}x</option>`).join('')}
-        </select>
-      </div>
-
       ${sampleIntervalHtml}
 
       <div class="control-group timeline-scrubber">
@@ -63,14 +56,12 @@ export class ControlPanel {
     this.playPauseBtn = document.getElementById('play-pause-btn');
     this.resetBtn = document.getElementById('reset-btn');
     this.stepBtn = document.getElementById('step-btn');
-    this.speedSelect = document.getElementById('speed-select');
     this.scrubber = document.getElementById('timeline-scrubber');
     this.timeDisplay = document.getElementById('time-display');
 
     this.playPauseBtn.addEventListener('click', () => this._togglePlayPause());
     this.resetBtn.addEventListener('click', () => this._handleReset());
     this.stepBtn.addEventListener('click', () => this._handleStep());
-    this.speedSelect.addEventListener('change', (e) => this._handleSpeedChange(e));
     this.scrubber.addEventListener('input', (e) => this._handleSeek(e));
 
     // Sample interval slider (optional)

@@ -75,60 +75,6 @@ class TracingVisualization {
 
     // Start animation loop
     app.ticker.add((delta) => this.update(delta.deltaMS));
-
-    // Create scenario selector
-    this._createScenarioSelector();
-  }
-
-  _createScenarioSelector() {
-    const container = document.createElement('div');
-    container.style.position = 'absolute';
-    container.style.top = '10px';
-    container.style.left = '10px';
-    container.style.zIndex = '100';
-    container.style.background = 'white';
-    container.style.padding = '10px';
-    container.style.borderRadius = '8px';
-    container.style.boxShadow = '0 2px 10px rgba(0,0,0,0.1)';
-    container.style.display = 'flex';
-    container.style.alignItems = 'center';
-    container.style.gap = '10px';
-
-    const label = document.createElement('label');
-    label.textContent = 'Scenario:';
-    label.style.fontWeight = 'bold';
-    label.style.fontFamily = 'system-ui, sans-serif';
-    container.appendChild(label);
-
-    const select = document.createElement('select');
-    select.style.padding = '5px';
-    select.style.borderRadius = '4px';
-    select.style.border = '1px solid #ccc';
-    
-    const options = [
-      { value: 'simple', label: 'Simple Call (Non-recursive)' },
-      { value: 'fibonacci', label: 'Fibonacci (Recursive)' }
-    ];
-
-    options.forEach(opt => {
-      const option = document.createElement('option');
-      option.value = opt.value;
-      option.textContent = opt.label;
-      select.appendChild(option);
-    });
-
-    select.value = 'simple'; // Default
-
-    select.addEventListener('change', (e) => {
-      if (e.target.value === 'simple') {
-        this.loadTrace(DEMO_SIMPLE);
-      } else {
-        this.loadTrace(DEMO_FIBONACCI);
-      }
-    });
-
-    container.appendChild(select);
-    document.body.appendChild(container);
   }
 
   loadTrace(demoData) {
