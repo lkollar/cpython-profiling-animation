@@ -1,6 +1,7 @@
 import * as PIXI from 'pixi.js';
 import { COLORS, TIMINGS } from '../config.js';
 import { Tween } from '../utils/AnimationUtils.js';
+import { getFunctionColor } from '../utils/ColorUtils.js';
 
 export class SamplingPanel extends PIXI.Container {
   constructor(width, height) {
@@ -172,7 +173,7 @@ export class SamplingPanel extends PIXI.Container {
         // Redraw bar with new width
         barData.bar.clear();
         barData.bar.roundRect(0, 0, targetWidth, barHeight, 3);
-        barData.bar.fill({ color: this._getFunctionColor(funcName) });
+        barData.bar.fill({ color: getFunctionColor(funcName) });
       }
 
       // Update percentage text
@@ -206,7 +207,7 @@ export class SamplingPanel extends PIXI.Container {
     // Active bar
     const bar = new PIXI.Graphics();
     bar.roundRect(0, 0, 2, height, 3);
-    bar.fill({ color: this._getFunctionColor(funcName) });
+    bar.fill({ color: getFunctionColor(funcName) });
     bar.position.set(70, 0);
     row.addChild(bar);
 
@@ -226,15 +227,6 @@ export class SamplingPanel extends PIXI.Container {
     this.barContainer.addChild(row);
 
     return { row, bg, bar, label, pct };
-  }
-
-  _getFunctionColor(funcName) {
-    if (funcName === 'main') return COLORS.funcMain;
-    if (funcName === 'fibonacci') return COLORS.funcFibonacci;
-    if (funcName === 'add') return 0xE36209;      // Orange
-    if (funcName === 'multiply') return 0x6F42C1; // Purple
-    if (funcName === 'calculate') return COLORS.funcFibonacci;
-    return COLORS.info;
   }
 
   // Get global position for flying frames to target

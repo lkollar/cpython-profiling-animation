@@ -3,6 +3,7 @@ import { StackFrame } from './StackFrame.js';
 import { FlyingStackFrame } from './FlyingStackFrame.js';
 import { LAYOUT, TIMINGS } from '../config.js';
 import { Tween } from '../utils/AnimationUtils.js';
+import { getFunctionColor } from '../utils/ColorUtils.js';
 
 export class StackVisualization extends PIXI.Container {
   constructor() {
@@ -101,7 +102,7 @@ export class StackVisualization extends PIXI.Container {
 
     this.frames.forEach(frame => {
       // Get color using same logic as original frame
-      const color = frame._getFunctionColor(frame.functionName);
+      const color = getFunctionColor(frame.functionName);
 
       // Create flying duplicate
       const flying = new FlyingStackFrame(

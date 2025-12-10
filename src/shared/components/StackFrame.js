@@ -1,6 +1,7 @@
 import * as PIXI from 'pixi.js';
 import { COLORS, LAYOUT } from '../config.js';
 import { Tween } from '../utils/AnimationUtils.js';
+import { getFunctionColor } from '../utils/ColorUtils.js';
 
 export class StackFrame extends PIXI.Container {
   constructor(functionName, filename, lineno, args = null) {
@@ -12,7 +13,7 @@ export class StackFrame extends PIXI.Container {
     this.args = args;
 
     // Determine color based on function name
-    const color = this._getFunctionColor(functionName);
+    const color = getFunctionColor(functionName);
 
     // Background rectangle with border
     this.bg = new PIXI.Graphics();
@@ -69,26 +70,12 @@ export class StackFrame extends PIXI.Container {
     }
   }
 
-  _getFunctionColor(funcName) {
-    // Map function names to colors
-    if (funcName === 'main') return COLORS.funcMain;
-    if (funcName === 'fibonacci') return COLORS.funcFibonacci;
-    if (funcName === 'add') return 0xE36209;      // Orange
-    if (funcName === 'multiply') return 0x6F42C1; // Purple
-    if (funcName === 'calculate') return COLORS.funcFibonacci;
-    return COLORS.info;
-  }
-
   _onHover() {
     this.bg.alpha = 0.8;
   }
 
   _onHoverOut() {
     this.bg.alpha = 1;
-  }
-
-  highlight(active) {
-    // No-op for simplified version
   }
 
   animateIn(targetY, duration = 300) {

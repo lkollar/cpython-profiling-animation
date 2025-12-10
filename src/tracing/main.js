@@ -1,5 +1,4 @@
-import * as PIXI from 'pixi.js';
-import { Application } from 'pixi.js';
+import { Application, Graphics, Text, Container } from 'pixi.js';
 import { DEMO_FIBONACCI, DEMO_SIMPLE } from '../shared/data/demoData.js';
 import { ExecutionTrace } from '../shared/models/ExecutionTrace.js';
 import { CodePanel } from '../shared/components/CodePanel.js';
@@ -7,7 +6,7 @@ import { StackVisualization } from '../shared/components/StackVisualization.js';
 import { SamplingPanel } from '../shared/components/SamplingPanel.js';
 import { ControlPanel } from '../shared/components/ControlPanel.js';
 import { Tween } from '../shared/utils/AnimationUtils.js';
-import { TIMINGS, LAYOUT } from '../shared/config.js';
+import { TIMINGS, LAYOUT, calculateLayout } from '../shared/config.js';
 
 class TracingVisualization {
   constructor(app) {
@@ -27,43 +26,32 @@ class TracingVisualization {
     this.lastSampleTime = 0;
     this.flyingAnimationInProgress = false;
 
-    // Calculate layout - optimized for documentation embedding
-    this.width = app.screen.width;
-    this.height = app.screen.height - 100; // Leave space for controls
+    // Calculate layout using centralized system
+    const layout = calculateLayout(app.screen.width, app.screen.height);
 
-    // Tighter proportions for embedded view
-    const codePanelWidth = Math.min(this.width * 0.35, 400);
-    const centerColumnWidth = 450; // Fixed width for consistent layout
-    const stackHeight = this.height * 0.45;
-    const samplingHeight = this.height * 0.55;
-
-    // Center column starts after code panel
-    const centerColumnStart = codePanelWidth;
-
-    // Create components
+    // Create components with calculated layout
     this.codePanel = new CodePanel(
       this.trace.source,
-      codePanelWidth,
-      this.height
+      layout.codePanel.width,
+      layout.codePanel.height
     );
 
     this.stackViz = new StackVisualization();
-    // Center stack frames in the middle column (stack frames are ~200px wide from LAYOUT.frameWidth)
-    this.stackViz.position.set(centerColumnStart + (centerColumnWidth - 200) / 2, 50);
+    this.stackViz.position.set(layout.stack.x, layout.stack.y);
     app.stage.addChild(this.stackViz);
 
     this.samplingPanel = new SamplingPanel(
-      centerColumnWidth - 40,
-      samplingHeight
+      layout.sampling.width,
+      layout.sampling.height
     );
-    this.samplingPanel.position.set(centerColumnStart + 20, stackHeight + 50);
+    this.samplingPanel.position.set(layout.sampling.x, layout.sampling.y);
     this.samplingPanel.setGroundTruth(this._getGroundTruthFunctions());
     app.stage.addChild(this.samplingPanel);
 
     // Flash overlay for sampling
-    this.flashOverlay = new PIXI.Graphics();
-    this.flashOverlay.rect(0, 0, this.width, this.height);
-    this.flashOverlay.fill({ color: 0xFFFFFF });
+    this.flashOverlay = new Graphics()
+      .rect(0, 0, app.screen.width, layout.contentHeight)
+      .fill({ color: 0xFFFFFF });
     this.flashOverlay.alpha = 0;
     app.stage.addChild(this.flashOverlay);
 
@@ -225,7 +213,6 @@ class TracingVisualization {
     // Prevent overlapping animations
     if (this.flyingAnimationInProgress) return;
 
-    // Get current stack state
     const stack = this.trace.getStackAt(this.currentTime);
 
     // Skip animation if stack is empty
@@ -235,90 +222,67 @@ class TracingVisualization {
     }
 
     this.flyingAnimationInProgress = true;
-
-    // Flash the stack frames
     this.stackViz.flashAll();
 
-    // Create flying frame duplicates
     const flyingFrames = this.stackViz.createFlyingFrames(this.app.stage);
+    const targetPosition = this.samplingPanel.getTargetPosition();
 
+    this._animateFlyingFrames(flyingFrames, targetPosition);
+  }
+
+  _animateFlyingFrames(flyingFrames, targetPosition) {
     if (flyingFrames.length === 0) {
-      this.samplingPanel.addSample(stack);
       this.flyingAnimationInProgress = false;
       return;
     }
 
     // Calculate bezier path
-    // Start: center of flying frames cluster
     const startX = flyingFrames[0].position.x + LAYOUT.frameWidth / 2;
     const startY = flyingFrames[0].position.y + (flyingFrames.length * (LAYOUT.frameHeight + LAYOUT.frameSpacing)) / 2;
     const start = { x: startX, y: startY };
-
-    // End: sampling panel target
-    const end = this.samplingPanel.getTargetPosition();
-
-    // Control point: arc upward
+    const end = targetPosition;
     const control = {
       x: (start.x + end.x) / 2,
       y: Math.min(start.y, end.y) - 80
     };
 
-    const path = [start, control, end];
-
-    // Animate all frames along the path
     let completedCount = 0;
-    const totalFrames = flyingFrames.length;
     let animationFinalized = false;
 
     const finalizeAnimation = () => {
       if (animationFinalized) return;
       animationFinalized = true;
 
-      // Show impact effect
       this.samplingPanel.showImpactEffect(end);
-
-      // Destroy all flying frames (even if some didn't complete)
       flyingFrames.forEach(f => {
-        if (!f.destroyed) {
-          f.destroy();
-        }
+        if (!f.destroyed) f.destroy();
       });
 
-      // Record the sample
+      const stack = this.trace.getStackAt(this.currentTime);
       this.samplingPanel.addSample(stack);
-
-      // Allow next animation
       this.flyingAnimationInProgress = false;
     };
 
     flyingFrames.forEach((frame, index) => {
-      // Offset each frame's start position relative to cluster center
       const offsetX = frame.position.x - flyingFrames[0].position.x;
       const offsetY = frame.position.y - flyingFrames[0].position.y;
 
-      // Create individual path offset from main path
       const framePath = [
         { x: start.x + offsetX, y: start.y + offsetY },
-        { x: control.x, y: control.y },  // All converge through same control point
-        { x: end.x, y: end.y }           // All arrive at same destination
+        { x: control.x, y: control.y },
+        { x: end.x, y: end.y }
       ];
 
       Tween.followPath(frame, framePath, TIMINGS.sampleToFlame, 'easeOutCubic', () => {
         completedCount++;
-
-        // When all frames complete
-        if (completedCount === totalFrames) {
+        if (completedCount === flyingFrames.length) {
           finalizeAnimation();
         }
       });
     });
 
-    // Safety timeout: force completion after animation duration + buffer
-    setTimeout(() => {
-      finalizeAnimation();
-    }, TIMINGS.sampleToFlame + 100);
+    setTimeout(() => finalizeAnimation(), TIMINGS.sampleToFlame + 100);
 
-    // Reduced flash overlay (flying frames are primary feedback now)
     this.flashOverlay.alpha = 0.1;
     Tween.to(this.flashOverlay, { alpha: 0 }, 150, 'easeOutQuad');
   }

@@ -76,3 +76,39 @@ export const LAYOUT = {
   flameNodeHeight: 30,
   flameMaxDepth: 20,
 };
+
+export function calculateLayout(screenWidth, screenHeight) {
+  // Leave space for controls at bottom
+  const contentHeight = screenHeight - 100;
+
+  // Calculate column widths
+  const codePanelWidth = Math.min(screenWidth * 0.35, 400);
+  const centerColumnWidth = 450;
+  const centerColumnStart = codePanelWidth;
+
+  // Calculate section heights
+  const stackHeight = contentHeight * 0.45;
+  const samplingHeight = contentHeight * 0.55;
+
+  return {
+    contentHeight,
+    codePanel: {
+      width: codePanelWidth,
+      height: contentHeight,
+      x: 0,
+      y: 0
+    },
+    stack: {
+      width: LAYOUT.frameWidth,
+      height: stackHeight,
+      x: centerColumnStart + (centerColumnWidth - LAYOUT.frameWidth) / 2,
+      y: 50
+    },
+    sampling: {
+      width: centerColumnWidth - 40,
+      height: samplingHeight,
+      x: centerColumnStart + 20,
+      y: stackHeight + 50
+    }
+  };
+}
