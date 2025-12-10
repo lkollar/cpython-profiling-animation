@@ -236,4 +236,35 @@ export class SamplingPanel extends PIXI.Container {
     if (funcName === 'calculate') return COLORS.funcFibonacci;
     return COLORS.info;
   }
+
+  // Get global position for flying frames to target
+  getTargetPosition() {
+    // Target the center of the bar chart area
+    const globalPos = this.barContainer.getGlobalPosition();
+    const barCount = Object.keys(this.bars).length;
+    const centerY = barCount > 0 ? (barCount * 28) / 2 : 50;
+
+    return {
+      x: globalPos.x + (this.panelWidth - 120) / 2,
+      y: globalPos.y + centerY
+    };
+  }
+
+  // Show impact effect when flying frames arrive
+  showImpactEffect(position) {
+    // Convert global position to local
+    const localPos = this.toLocal(position);
+
+    const impact = new PIXI.Graphics();
+    impact.circle(0, 0, 15);
+    impact.fill({ color: COLORS.samplingAccent, alpha: 0.4 });
+    impact.position.set(localPos.x, localPos.y);
+    this.addChild(impact);
+
+    // Animate expansion and fade
+    Tween.to(impact.scale, { x: 4, y: 4 }, 300, 'easeOutQuad');
+    Tween.to(impact, { alpha: 0 }, 300, 'easeOutQuad', () => {
+      impact.destroy();
+    });
+  }
 }

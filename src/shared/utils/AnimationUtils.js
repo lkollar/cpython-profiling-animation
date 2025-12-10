@@ -167,6 +167,39 @@ export class Tween {
   static killAll() {
     activeTweens.length = 0;
   }
+
+  // Calculate point on quadratic bezier curve
+  // path = [start, control, end] where each is {x, y}
+  static bezierPoint(path, t) {
+    const [p0, p1, p2] = path;
+    const mt = 1 - t;
+    return {
+      x: mt * mt * p0.x + 2 * mt * t * p1.x + t * t * p2.x,
+      y: mt * mt * p0.y + 2 * mt * t * p1.y + t * t * p2.y
+    };
+  }
+
+  // Animate target along bezier path
+  // Returns the tween for chaining/tracking
+  static followPath(target, path, duration, easing = 'easeOutCubic', onComplete = null) {
+    const tracker = { progress: 0 };
+
+    const tween = Tween.to(tracker, { progress: 1 }, duration, easing, onComplete);
+
+    // Store update function on target for per-frame position updates
+    target._pathTracker = tracker;
+    target._path = path;
+    target._updatePathPosition = function() {
+      // Check if object is destroyed (PixiJS sets this flag)
+      if (this.destroyed || !this._path || !this._pathTracker) {
+        return;
+      }
+      const pos = Tween.bezierPoint(this._path, this._pathTracker.progress);
+      this.position.set(pos.x, pos.y);
+    };
+
+    return tween;
+  }
 }
 
 // Helper function for chaining tweens

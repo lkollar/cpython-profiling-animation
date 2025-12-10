@@ -1,5 +1,6 @@
 import * as PIXI from 'pixi.js';
 import { StackFrame } from './StackFrame.js';
+import { FlyingStackFrame } from './FlyingStackFrame.js';
 import { LAYOUT, TIMINGS } from '../config.js';
 import { Tween } from '../utils/AnimationUtils.js';
 
@@ -91,6 +92,33 @@ export class StackVisualization extends PIXI.Container {
   // Highlight all frames (for sampling flash effect)
   flashAll() {
     this.frames.forEach(frame => frame.flash());
+  }
+
+  // Create flying frame duplicates for animation
+  // Returns array of FlyingStackFrame instances added to the root stage
+  createFlyingFrames(stage) {
+    const flyingFrames = [];
+
+    this.frames.forEach(frame => {
+      // Get color using same logic as original frame
+      const color = frame._getFunctionColor(frame.functionName);
+
+      // Create flying duplicate
+      const flying = new FlyingStackFrame(
+        `${frame.functionName}:${frame.lineno}`,
+        color
+      );
+
+      // Position at global coordinates of original frame
+      const globalPos = frame.getGlobalPosition();
+      flying.position.set(globalPos.x, globalPos.y);
+
+      // Add to stage (not to this container)
+      stage.addChild(flying);
+      flyingFrames.push(flying);
+    });
+
+    return flyingFrames;
   }
 
   // Update stack to match a given state

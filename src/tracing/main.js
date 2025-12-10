@@ -7,7 +7,7 @@ import { StackVisualization } from '../shared/components/StackVisualization.js';
 import { SamplingPanel } from '../shared/components/SamplingPanel.js';
 import { ControlPanel } from '../shared/components/ControlPanel.js';
 import { Tween } from '../shared/utils/AnimationUtils.js';
-import { TIMINGS } from '../shared/config.js';
+import { TIMINGS, LAYOUT } from '../shared/config.js';
 
 class TracingVisualization {
   constructor(app) {
@@ -25,6 +25,7 @@ class TracingVisualization {
     // Sampling state
     this.sampleInterval = TIMINGS.sampleIntervalDefault;
     this.lastSampleTime = 0;
+    this.flyingAnimationInProgress = false;
 
     // Calculate layout - optimized for documentation embedding
     this.width = app.screen.width;
@@ -157,6 +158,13 @@ class TracingVisualization {
   update(deltaTime) {
     Tween.updateAll(deltaTime);
 
+    // Update flying frame positions along their paths
+    this.app.stage.children.forEach(child => {
+      if (child._updatePathPosition) {
+        child._updatePathPosition();
+      }
+    });
+
     if (!this.isPlaying) {
       this.controls.updateTimeDisplay(this.currentTime, this.trace.duration);
       return;
@@ -214,15 +222,105 @@ class TracingVisualization {
   }
 
   _takeSample() {
-    // Flash the background
-    this.flashOverlay.alpha = 0.3;
-    Tween.to(this.flashOverlay, { alpha: 0 }, 150, 'easeOutQuad');
+    // Prevent overlapping animations
+    if (this.flyingAnimationInProgress) return;
 
     // Get current stack state
     const stack = this.trace.getStackAt(this.currentTime);
 
-    // Record snapshot in SamplingPanel
-    this.samplingPanel.addSample(stack);
+    // Skip animation if stack is empty
+    if (stack.length === 0) {
+      this.samplingPanel.addSample(stack);
+      return;
+    }
+
+    this.flyingAnimationInProgress = true;
+
+    // Flash the stack frames
+    this.stackViz.flashAll();
+
+    // Create flying frame duplicates
+    const flyingFrames = this.stackViz.createFlyingFrames(this.app.stage);
+
+    if (flyingFrames.length === 0) {
+      this.samplingPanel.addSample(stack);
+      this.flyingAnimationInProgress = false;
+      return;
+    }
+
+    // Calculate bezier path
+    // Start: center of flying frames cluster
+    const startX = flyingFrames[0].position.x + LAYOUT.frameWidth / 2;
+    const startY = flyingFrames[0].position.y + (flyingFrames.length * (LAYOUT.frameHeight + LAYOUT.frameSpacing)) / 2;
+    const start = { x: startX, y: startY };
+
+    // End: sampling panel target
+    const end = this.samplingPanel.getTargetPosition();
+
+    // Control point: arc upward
+    const control = {
+      x: (start.x + end.x) / 2,
+      y: Math.min(start.y, end.y) - 80
+    };
+
+    const path = [start, control, end];
+
+    // Animate all frames along the path
+    let completedCount = 0;
+    const totalFrames = flyingFrames.length;
+    let animationFinalized = false;
+
+    const finalizeAnimation = () => {
+      if (animationFinalized) return;
+      animationFinalized = true;
+
+      // Show impact effect
+      this.samplingPanel.showImpactEffect(end);
+
+      // Destroy all flying frames (even if some didn't complete)
+      flyingFrames.forEach(f => {
+        if (!f.destroyed) {
+          f.destroy();
+        }
+      });
+
+      // Record the sample
+      this.samplingPanel.addSample(stack);
+
+      // Allow next animation
+      this.flyingAnimationInProgress = false;
+    };
+
+    flyingFrames.forEach((frame, index) => {
+      // Offset each frame's start position relative to cluster center
+      const offsetX = frame.position.x - flyingFrames[0].position.x;
+      const offsetY = frame.position.y - flyingFrames[0].position.y;
+
+      // Create individual path offset from main path
+      const framePath = [
+        { x: start.x + offsetX, y: start.y + offsetY },
+        { x: control.x, y: control.y },  // All converge through same control point
+        { x: end.x, y: end.y }           // All arrive at same destination
+      ];
+
+      Tween.followPath(frame, framePath, TIMINGS.sampleToFlame, 'easeOutCubic', () => {
+        completedCount++;
+
+        // When all frames complete
+        if (completedCount === totalFrames) {
+          finalizeAnimation();
+        }
+      });
+    });
+
+    // Safety timeout: force completion after animation duration + buffer
+    setTimeout(() => {
+      finalizeAnimation();
+    }, TIMINGS.sampleToFlame + 100);
+
+    // Reduced flash overlay (flying frames are primary feedback now)
+    this.flashOverlay.alpha = 0.1;
+    Tween.to(this.flashOverlay, { alpha: 0 }, 150, 'easeOutQuad');
   }
 
   _rebuildState() {
