@@ -415,3 +415,200 @@ canvas {
   color: #005CC5;
   /* Blue */
 }
+
+/* Stack Frame Components */
+.stack-frame {
+  position: absolute;
+  width: 200px;
+  height: 40px;
+  cursor: pointer;
+  contain: layout style paint;
+}
+
+.stack-frame-bg {
+  position: absolute;
+  inset: 0;
+  border-radius: 4px;
+  transition: opacity 0.15s;
+}
+
+.stack-frame[data-function="main"] .stack-frame-bg {
+  background: #3776AB;
+}
+.stack-frame[data-function="fibonacci"] .stack-frame-bg {
+  background: #6A9955;
+}
+.stack-frame[data-function="add"] .stack-frame-bg {
+  background: #E36209;
+}
+.stack-frame[data-function="multiply"] .stack-frame-bg {
+  background: #6F42C1;
+}
+.stack-frame[data-function="calculate"] .stack-frame-bg {
+  background: #6A9955;
+}
+
+.stack-frame-text {
+  position: absolute;
+  left: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  font: 600 12px 'SF Mono', Monaco, Consolas, monospace;
+  color: white;
+  pointer-events: none;
+}
+
+.stack-frame-flash {
+  position: absolute;
+  inset: 0;
+  background: white;
+  border-radius: 4px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.stack-frame:hover .stack-frame-bg {
+  opacity: 0.8;
+}
+
+/* Flying frames (duplicates for animation) */
+.stack-frame.flying {
+  pointer-events: none;
+  z-index: 1000;
+}
+
+/* Stack Visualization Container */
+.stack-visualization {
+  position: absolute;
+  width: 200px;
+  /* height grows dynamically */
+}
+
+/* Sampling Panel */
+.sampling-panel {
+  position: absolute;
+  background: white;
+  border: 1px solid #E1E4E8;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  overflow: hidden;
+}
+
+.sampling-bg {
+  position: absolute;
+  inset: 0;
+  background: #FAFBFC;
+}
+
+.sampling-title {
+  position: absolute;
+  top: 8px;
+  left: 12px;
+  font: 600 14px 'SF Mono', Monaco, Consolas, monospace;
+  color: #586069;
+  margin: 0;
+}
+
+.sampling-stats {
+  position: absolute;
+  top: 32px;
+  left: 12px;
+  font: 400 11px 'SF Mono', Monaco, Consolas, monospace;
+  color: #586069;
+  display: flex;
+  gap: 20px;
+}
+
+.sampling-stats span {
+  white-space: nowrap;
+}
+
+.sampling-bars {
+  position: absolute;
+  top: 70px;
+  left: 12px;
+  right: 12px;
+  bottom: 12px;
+  overflow-y: auto;
+}
+
+.sampling-bar-row {
+  position: absolute;
+  width: 100%;
+  height: 28px;
+  transition: transform 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  display: flex;
+  align-items: center;
+}
+
+.bar-label {
+  font: 400 11px 'SF Mono', Monaco, Consolas, monospace;
+  color: #24292E;
+  flex-shrink: 0;
+  width: 65px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.bar-bg {
+  position: absolute;
+  left: 70px;
+  width: 100%;
+  height: 20px;
+  background: #E1E4E8;
+  border-radius: 3px;
+}
+
+.bar-fill {
+  position: absolute;
+  left: 70px;
+  height: 20px;
+  border-radius: 3px;
+  transition: width 0.15s ease;
+  min-width: 2px;
+}
+
+.bar-percent {
+  font: 400 10px 'SF Mono', Monaco, Consolas, monospace;
+  color: #586069;
+  margin-left: 4px;
+}
+
+/* Impact effect circle */
+.impact-circle {
+  position: absolute;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: #50E3C2;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+
+/* Flash overlay */
+.flash-overlay {
+  position: absolute;
+  inset: 0;
+  background: white;
+  pointer-events: none;
+  opacity: 0;
+}
+
+/* Performance optimizations */
+.stack-frame,
+.flying-frame,
+.sampling-bar-row {
+  will-change: transform, opacity;
+  contain: layout style paint;
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  .stack-frame,
+  .flying-frame,
+  .sampling-bar-row,
+  .impact-circle {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

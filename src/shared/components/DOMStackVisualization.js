@@ -1,16 +1,21 @@
-import * as PIXI from 'pixi.js';
-import { StackFrame } from './StackFrame.js';
-import { FlyingStackFrame } from './FlyingStackFrame.js';
+import { DOMStackFrame } from './DOMStackFrame.js';
+import { DOMFlyingStackFrame } from './DOMFlyingStackFrame.js';
 import { LAYOUT, TIMINGS } from '../config.js';
-import { Tween } from '../utils/AnimationUtils.js';
-import { getFunctionColor } from '../utils/ColorUtils.js';
+import { Tween } from '../utils/DOMAnimationUtils.js';
 
-export class StackVisualization extends PIXI.Container {
+export class DOMStackVisualization {
   constructor() {
-    super();
-
-    this.frames = [];  // Array of StackFrame objects
+    this.frames = [];  // Array of DOMStackFrame objects
     this.frameSpacing = LAYOUT.frameSpacing;
+
+    // Create container element
+    this.element = document.createElement('div');
+    this.element.className = 'stack-visualization';
+
+    // Set initial styles
+    this.element.style.position = 'absolute';
+    this.element.style.width = `${LAYOUT.frameWidth}px`;
+    this.element.style.height = '0px'; // Will grow as needed
   }
 
   // Process execution events to maintain stack state
@@ -39,20 +44,20 @@ export class StackVisualization extends PIXI.Container {
       this.frames[this.frames.length - 1].setActive(false);
     }
 
-    const frame = new StackFrame(functionName, filename, lineno, args);
+    const frame = new DOMStackFrame(functionName, filename, lineno, args);
     frame.setActive(true); // New frame is active
 
     // Calculate position (stack grows upward, but we render bottom-to-top)
     const targetY = this.frames.length * (LAYOUT.frameHeight + this.frameSpacing);
 
     // Add to container and array
-    this.addChild(frame);
+    this.element.appendChild(frame.element);
     this.frames.push(frame);
 
     // Animate in
     frame.animateIn(targetY, TIMINGS.frameSlideIn);
 
-    // Adjust container position to keep stack visible
+    // Adjust container height
     this._adjustContainerPosition();
   }
 
@@ -73,11 +78,14 @@ export class StackVisualization extends PIXI.Container {
 
   // Clear all frames
   clear() {
-    // Destroy all children to ensure animating-out frames are also removed
-    // This fixes the "ghosting" issue where popped frames that were animating out
-    // weren't in this.frames but were still in the container
-    this.removeChildren().forEach(child => child.destroy());
+    // Remove all frame elements
+    this.frames.forEach(frame => {
+      frame.destroy();
+    });
     this.frames = [];
+
+    // Clear container
+    this.element.innerHTML = '';
   }
 
   // Get current stack height
@@ -96,26 +104,16 @@ export class StackVisualization extends PIXI.Container {
   }
 
   // Create flying frame duplicates for animation
-  // Returns array of FlyingStackFrame instances added to the root stage
-  createFlyingFrames(stage) {
+  // Returns array of DOMFlyingStackFrame instances
+  createFlyingFrames(container) {
     const flyingFrames = [];
 
     this.frames.forEach(frame => {
-      // Get color using same logic as original frame
-      const color = getFunctionColor(frame.functionName);
-
       // Create flying duplicate
-      const flying = new FlyingStackFrame(
-        `${frame.functionName}:${frame.lineno}`,
-        color
-      );
+      const flying = new DOMFlyingStackFrame(frame);
 
-      // Position at global coordinates of original frame
-      const globalPos = frame.getGlobalPosition();
-      flying.position.set(globalPos.x, globalPos.y);
-
-      // Add to stage (not to this container)
-      stage.addChild(flying);
+      // Add to provided container
+      container.appendChild(flying.element);
       flyingFrames.push(flying);
     });
 
@@ -131,16 +129,16 @@ export class StackVisualization extends PIXI.Container {
     this.clear();
 
     targetStack.forEach(({ func, file, line, args }, index) => {
-      const frame = new StackFrame(func, file, line, args);
+      const frame = new DOMStackFrame(func, file, line, args);
       const y = this.frames.length * (LAYOUT.frameHeight + this.frameSpacing);
-      frame.position.set(0, y);
-      
+      frame.setPosition(0, y);
+
       // Set active state for the top frame
       if (index === targetStack.length - 1) {
         frame.setActive(true);
       }
 
-      this.addChild(frame);
+      this.element.appendChild(frame.element);
       this.frames.push(frame);
     });
 
@@ -149,6 +147,10 @@ export class StackVisualization extends PIXI.Container {
 
   // Adjust container position to keep stack centered/visible
   _adjustContainerPosition() {
+    // Update container height based on number of frames
+    const totalHeight = this.frames.length * (LAYOUT.frameHeight + this.frameSpacing);
+    this.element.style.height = `${totalHeight}px`;
+
     // If stack is tall, we might want to scroll or adjust position
     // For now, keep it simple - stack grows from bottom
   }
@@ -157,12 +159,15 @@ export class StackVisualization extends PIXI.Container {
   _repositionFrames() {
     this.frames.forEach((frame, index) => {
       const targetY = index * (LAYOUT.frameHeight + this.frameSpacing);
-      
-      if (Math.abs(frame.position.y - targetY) > 0.5) {
-        Tween.to(frame, { position: { y: targetY } }, 200, 'easeOutQuad');
+
+      const currentPos = frame.getPosition();
+      if (Math.abs(currentPos.y - targetY) > 0.5) {
+        Tween.to(frame.element, {
+          position: { y: targetY }
+        }, 200, 'easeOutQuad');
       }
     });
-    
+
     this._adjustContainerPosition();
   }
 }

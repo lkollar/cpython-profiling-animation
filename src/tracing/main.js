@@ -1,17 +1,16 @@
-import { Application, Graphics, Text, Container } from 'pixi.js';
 import { DEMO_FIBONACCI, DEMO_SIMPLE } from '../shared/data/demoData.js';
 import { ExecutionTrace } from '../shared/models/ExecutionTrace.js';
 import { CodePanel } from '../shared/components/CodePanel.js';
-import { StackVisualization } from '../shared/components/StackVisualization.js';
-import { SamplingPanel } from '../shared/components/SamplingPanel.js';
+import { DOMStackVisualization } from '../shared/components/DOMStackVisualization.js';
+import { DOMSamplingPanel } from '../shared/components/DOMSamplingPanel.js';
 import { ControlPanel } from '../shared/components/ControlPanel.js';
-import { Tween } from '../shared/utils/AnimationUtils.js';
+import { Tween } from '../shared/utils/DOMAnimationUtils.js';
 import { TIMINGS, LAYOUT, calculateLayout } from '../shared/config.js';
 
 class TracingVisualization {
-  constructor(app) {
-    this.app = app;
-    
+  constructor(container) {
+    this.container = container;
+
     // Initialize with simple demo
     this.trace = new ExecutionTrace(DEMO_SIMPLE.source, DEMO_SIMPLE.trace);
 
@@ -20,14 +19,26 @@ class TracingVisualization {
     this.isPlaying = false;
     this.playbackSpeed = TIMINGS.defaultSpeed;
     this.eventIndex = 0;
-    
+
     // Sampling state
     this.sampleInterval = TIMINGS.sampleIntervalDefault;
     this.lastSampleTime = 0;
     this.flyingAnimationInProgress = false;
 
     // Calculate layout using centralized system
-    const layout = calculateLayout(app.screen.width, app.screen.height);
+    const layout = calculateLayout(container.clientWidth, container.clientHeight);
+
+    // Create visualization container
+    const vizContainer = document.createElement('div');
+    vizContainer.id = 'viz-container';
+    vizContainer.style.cssText = `
+      position: relative;
+      width: 100%;
+      height: ${layout.contentHeight}px;
+      background: #FAFAFA;
+    `;
+    container.appendChild(vizContainer);
+    this.vizContainer = vizContainer;
 
     // Create components with calculated layout
     this.codePanel = new CodePanel(
@@ -36,24 +47,31 @@ class TracingVisualization {
       layout.codePanel.height
     );
 
-    this.stackViz = new StackVisualization();
-    this.stackViz.position.set(layout.stack.x, layout.stack.y);
-    app.stage.addChild(this.stackViz);
+    this.stackViz = new DOMStackVisualization();
+    this.stackViz.element.style.left = `${layout.stack.x}px`;
+    this.stackViz.element.style.top = `${layout.stack.y}px`;
+    this.vizContainer.appendChild(this.stackViz.element);
 
-    this.samplingPanel = new SamplingPanel(
+    this.samplingPanel = new DOMSamplingPanel(
       layout.sampling.width,
       layout.sampling.height
     );
-    this.samplingPanel.position.set(layout.sampling.x, layout.sampling.y);
+    this.samplingPanel.element.style.left = `${layout.sampling.x}px`;
+    this.samplingPanel.element.style.top = `${layout.sampling.y}px`;
     this.samplingPanel.setGroundTruth(this._getGroundTruthFunctions());
-    app.stage.addChild(this.samplingPanel);
+    this.vizContainer.appendChild(this.samplingPanel.element);
 
     // Flash overlay for sampling
-    this.flashOverlay = new Graphics()
-      .rect(0, 0, app.screen.width, layout.contentHeight)
-      .fill({ color: 0xFFFFFF });
-    this.flashOverlay.alpha = 0;
-    app.stage.addChild(this.flashOverlay);
+    this.flashOverlay = document.createElement('div');
+    this.flashOverlay.className = 'flash-overlay';
+    this.flashOverlay.style.cssText = `
+      position: absolute;
+      inset: 0;
+      background: white;
+      pointer-events: none;
+      opacity: 0;
+    `;
+    this.vizContainer.appendChild(this.flashOverlay);
 
     // Create control panel
     this.controls = new ControlPanel(
@@ -69,7 +87,8 @@ class TracingVisualization {
     this.controls.setDuration(this.trace.duration);
 
     // Start animation loop
-    app.ticker.add((delta) => this.update(delta.deltaMS));
+    this.lastTime = performance.now();
+    this._animate();
   }
 
   loadTrace(demoData) {
@@ -131,10 +150,10 @@ class TracingVisualization {
 
   step() {
     this.pause();
-    
+
     // Find the next event after current time
     const nextEvent = this.trace.getNextEvent(this.currentTime);
-    
+
     if (nextEvent) {
       // Advance to just after the event to ensure it's processed
       this.currentTime = nextEvent.timestamp + 0.1;
@@ -143,15 +162,16 @@ class TracingVisualization {
     }
   }
 
+  _animate(currentTime = performance.now()) {
+    const deltaTime = currentTime - this.lastTime;
+    this.lastTime = currentTime;
+
+    this.update(deltaTime);
+    requestAnimationFrame((t) => this._animate(t));
+  }
+
   update(deltaTime) {
     Tween.updateAll(deltaTime);
-
-    // Update flying frame positions along their paths
-    this.app.stage.children.forEach(child => {
-      if (child._updatePathPosition) {
-        child._updatePathPosition();
-      }
-    });
 
     if (!this.isPlaying) {
       this.controls.updateTimeDisplay(this.currentTime, this.trace.duration);
@@ -224,7 +244,7 @@ class TracingVisualization {
     this.flyingAnimationInProgress = true;
     this.stackViz.flashAll();
 
-    const flyingFrames = this.stackViz.createFlyingFrames(this.app.stage);
+    const flyingFrames = this.stackViz.createFlyingFrames(this.vizContainer);
     const targetPosition = this.samplingPanel.getTargetPosition();
 
     this._animateFlyingFrames(flyingFrames, targetPosition);
@@ -237,8 +257,9 @@ class TracingVisualization {
     }
 
     // Calculate bezier path
-    const startX = flyingFrames[0].position.x + LAYOUT.frameWidth / 2;
-    const startY = flyingFrames[0].position.y + (flyingFrames.length * (LAYOUT.frameHeight + LAYOUT.frameSpacing)) / 2;
+    const firstFramePos = flyingFrames[0].getPosition();
+    const startX = firstFramePos.x + LAYOUT.frameWidth / 2;
+    const startY = firstFramePos.y + (flyingFrames.length * (LAYOUT.frameHeight + LAYOUT.frameSpacing)) / 2;
     const start = { x: startX, y: startY };
     const end = targetPosition;
     const control = {
@@ -255,7 +276,7 @@ class TracingVisualization {
 
       this.samplingPanel.showImpactEffect(end);
       flyingFrames.forEach(f => {
-        if (!f.destroyed) f.destroy();
+        f.destroy();
       });
 
       const stack = this.trace.getStackAt(this.currentTime);
@@ -264,8 +285,9 @@ class TracingVisualization {
     };
 
     flyingFrames.forEach((frame, index) => {
-      const offsetX = frame.position.x - flyingFrames[0].position.x;
-      const offsetY = frame.position.y - flyingFrames[0].position.y;
+      const framePos = frame.getPosition();
+      const offsetX = framePos.x - firstFramePos.x;
+      const offsetY = framePos.y - firstFramePos.y;
 
       const framePath = [
         { x: start.x + offsetX, y: start.y + offsetY },
@@ -273,7 +295,7 @@ class TracingVisualization {
         { x: end.x, y: end.y }
       ];
 
-      Tween.followPath(frame, framePath, TIMINGS.sampleToFlame, 'easeOutCubic', () => {
+      frame.animateAlongPath(framePath, TIMINGS.sampleToFlame, () => {
         completedCount++;
         if (completedCount === flyingFrames.length) {
           finalizeAnimation();
@@ -283,8 +305,14 @@ class TracingVisualization {
 
     setTimeout(() => finalizeAnimation(), TIMINGS.sampleToFlame + 100);
 
-    this.flashOverlay.alpha = 0.1;
-    Tween.to(this.flashOverlay, { alpha: 0 }, 150, 'easeOutQuad');
+    // Flash overlay animation
+    this.flashOverlay.animate([
+      { opacity: 0.1 },
+      { opacity: 0 }
+    ], {
+      duration: 150,
+      easing: 'cubic-bezier(0.25, 0.46, 0.45, 0.94)'
+    });
   }
 
   _rebuildState() {
@@ -315,18 +343,5 @@ class TracingVisualization {
 }
 
 // Initialize
-(async () => {
-  const appContainer = document.querySelector('#app');
-  const app = new Application();
-  await app.init({
-    background: '#FAFAFA',
-    resizeTo: appContainer,
-    antialias: true,
-    resolution: window.devicePixelRatio || 2,
-    autoDensity: true,
-  });
-
-  appContainer.appendChild(app.canvas);
-
-  new TracingVisualization(app);
-})();
+const appContainer = document.querySelector('#app');
+new TracingVisualization(appContainer);
