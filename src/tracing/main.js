@@ -316,16 +316,17 @@ class TracingVisualization {
 
 // Initialize
 (async () => {
+  const appContainer = document.querySelector('#app');
   const app = new Application();
   await app.init({
     background: '#FAFAFA',
-    resizeTo: window,
+    resizeTo: appContainer,
     antialias: true,
     resolution: window.devicePixelRatio || 2,
     autoDensity: true,
   });
 
-  document.querySelector('#app').appendChild(app.canvas);
+  appContainer.appendChild(app.canvas);
 
   new TracingVisualization(app);
 })();

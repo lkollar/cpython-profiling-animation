@@ -28,8 +28,10 @@ body {
 
 #app {
   width: 100vw;
+  max-width: 1200px;
   height: 100vh;
   position: relative;
+  margin: 0 auto;
 }
 
 canvas {
@@ -38,7 +40,7 @@ canvas {
 
 /* Control Panel */
 #control-panel {
-  position: fixed;
+  position: absolute;
   bottom: 20px;
   left: 50%;
   transform: translateX(-50%);
@@ -304,7 +306,7 @@ canvas {
 
 /* Code Panel Overlay (DOM-based for crisp text) */
 #code-panel {
-  position: fixed;
+  position: absolute;
   top: 0;
   left: 0;
   background: white;
