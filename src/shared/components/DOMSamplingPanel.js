@@ -115,7 +115,7 @@ export class DOMSamplingPanel {
   }
 
   _updateBars() {
-    const barMaxWidth = this.panelWidth - 120;
+    const barMaxWidth = this.panelWidth - 150;  // Leave room for percentage text
     const rowHeight = 28;
 
     // Sort functions by count (descending)
@@ -205,18 +205,21 @@ export class DOMSamplingPanel {
     return row;
   }
 
-  // Get position for flying frames to target (relative to parent container)
-  getTargetPosition() {
+  // Get position for flying frames to target
+  getTargetPosition(container = null) {
     const barCount = Object.keys(this.bars).length;
     const centerY = barCount > 0 ? (barCount * 28) / 2 : 50;
 
-    // Get element's position relative to its offset parent
+    // Get element's position relative to the container
     const rect = this.barsContainer.getBoundingClientRect();
-    const parentRect = this.element.parentElement.getBoundingClientRect();
+    const containerRect = container ? container.getBoundingClientRect() : this.element.parentElement.getBoundingClientRect();
+
+    const barStartX = 70;  // Bars start 70px from left (see _createBarRow)
+    const barMaxWidth = this.panelWidth - 150;
 
     return {
-      x: rect.left - parentRect.left + (this.panelWidth - 120) / 2,
-      y: rect.top - parentRect.top + centerY
+      x: rect.left - containerRect.left + barStartX + barMaxWidth / 2,
+      y: rect.top - containerRect.top + centerY
     };
   }
 

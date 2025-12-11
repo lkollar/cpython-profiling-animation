@@ -66,6 +66,9 @@ export class DOMFlyingStackFrame {
       // Use modern CSS offset-path for smooth animation
       const svgPath = createBezierPath(adjustedPath[0], adjustedPath[1], adjustedPath[2]);
 
+      // IMPORTANT: Clear transform - offset-path positions absolutely,
+      // and transform would be applied ON TOP of offset-path position
+      this.element.style.transform = 'none';
       this.element.style.offsetPath = `path('${svgPath}')`;
       this.element.style.offsetRotate = '0deg';
 

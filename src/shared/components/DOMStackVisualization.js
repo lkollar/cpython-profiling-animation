@@ -108,9 +108,19 @@ export class DOMStackVisualization {
   createFlyingFrames(container) {
     const flyingFrames = [];
 
+    // Get container position
+    const containerRect = container.getBoundingClientRect();
+
     this.frames.forEach(frame => {
       // Create flying duplicate
       const flying = new DOMFlyingStackFrame(frame);
+
+      // Use frame's actual bounding rect for precise positioning
+      const frameRect = frame.element.getBoundingClientRect();
+      const offsetX = frameRect.left - containerRect.left;
+      const offsetY = frameRect.top - containerRect.top;
+
+      flying.setPosition(offsetX, offsetY);
 
       // Add to provided container
       container.appendChild(flying.element);

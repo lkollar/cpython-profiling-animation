@@ -245,7 +245,7 @@ class TracingVisualization {
     this.stackViz.flashAll();
 
     const flyingFrames = this.stackViz.createFlyingFrames(this.vizContainer);
-    const targetPosition = this.samplingPanel.getTargetPosition();
+    const targetPosition = this.samplingPanel.getTargetPosition(this.vizContainer);
 
     this._animateFlyingFrames(flyingFrames, targetPosition);
   }
@@ -256,17 +256,6 @@ class TracingVisualization {
       return;
     }
 
-    // Calculate bezier path
-    const firstFramePos = flyingFrames[0].getPosition();
-    const startX = firstFramePos.x + LAYOUT.frameWidth / 2;
-    const startY = firstFramePos.y + (flyingFrames.length * (LAYOUT.frameHeight + LAYOUT.frameSpacing)) / 2;
-    const start = { x: startX, y: startY };
-    const end = targetPosition;
-    const control = {
-      x: (start.x + end.x) / 2,
-      y: Math.min(start.y, end.y) - 80
-    };
-
     let completedCount = 0;
     let animationFinalized = false;
 
@@ -274,7 +263,7 @@ class TracingVisualization {
       if (animationFinalized) return;
       animationFinalized = true;
 
-      this.samplingPanel.showImpactEffect(end);
+      this.samplingPanel.showImpactEffect(targetPosition);
       flyingFrames.forEach(f => {
         f.destroy();
       });
@@ -285,15 +274,19 @@ class TracingVisualization {
     };
 
     flyingFrames.forEach((frame, index) => {
+      // Get the current position of the frame
       const framePos = frame.getPosition();
-      const offsetX = framePos.x - firstFramePos.x;
-      const offsetY = framePos.y - firstFramePos.y;
+      const startX = framePos.x + LAYOUT.frameWidth / 2;
+      const startY = framePos.y + LAYOUT.frameHeight / 2;
 
-      const framePath = [
-        { x: start.x + offsetX, y: start.y + offsetY },
-        { x: control.x, y: control.y },
-        { x: end.x, y: end.y }
-      ];
+      const start = { x: startX, y: startY };
+      const end = targetPosition;
+      const control = {
+        x: (start.x + end.x) / 2,
+        y: Math.min(start.y, end.y) - 80
+      };
+
+      const framePath = [start, control, end];
 
       frame.animateAlongPath(framePath, TIMINGS.sampleToFlame, () => {
         completedCount++;
