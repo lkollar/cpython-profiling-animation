@@ -5,7 +5,7 @@ import { DOMStackVisualization } from '../shared/components/DOMStackVisualizatio
 import { DOMSamplingPanel } from '../shared/components/DOMSamplingPanel.js';
 import { ControlPanel } from '../shared/components/ControlPanel.js';
 import { Tween } from '../shared/utils/DOMAnimationUtils.js';
-import { TIMINGS, LAYOUT, calculateLayout } from '../shared/config.js';
+import { TIMINGS, LAYOUT } from '../shared/config.js';
 
 class TracingVisualization {
   constructor(container) {
@@ -25,57 +25,50 @@ class TracingVisualization {
     this.lastSampleTime = 0;
     this.flyingAnimationInProgress = false;
 
-    // Calculate layout using centralized system
-    const layout = calculateLayout(container.clientWidth, container.clientHeight);
+    // Create new DOM structure
+    this._createLayout();
 
-    // Create visualization container
-    const vizContainer = document.createElement('div');
-    vizContainer.id = 'viz-container';
-    vizContainer.style.cssText = `
-      position: relative;
-      width: 100%;
-      height: ${layout.contentHeight}px;
-      background: #FAFAFA;
-    `;
-    container.appendChild(vizContainer);
-    this.vizContainer = vizContainer;
+    // Start animation loop
+    this.lastTime = performance.now();
+    this._animate();
+  }
 
-    // Create components with calculated layout
-    this.codePanel = new CodePanel(
-      this.trace.source,
-      layout.codePanel.width,
-      layout.codePanel.height
-    );
+  _createLayout() {
+    // Code panel goes directly into container (left column of CSS grid)
+    this.codePanel = new CodePanel(this.trace.source);
+    this.container.appendChild(this.codePanel.element);
+
+    // Create visualization column (right side)
+    this.vizColumn = document.createElement('div');
+    this.vizColumn.className = 'viz-column';
+    this.container.appendChild(this.vizColumn);
+
+    // Stack section
+    const stackSection = document.createElement('div');
+    stackSection.className = 'stack-section';
+
+    const stackTitle = document.createElement('div');
+    stackTitle.className = 'stack-section-title';
+    stackTitle.textContent = 'Call Stack';
+    stackSection.appendChild(stackTitle);
 
     this.stackViz = new DOMStackVisualization();
-    this.stackViz.element.style.left = `${layout.stack.x}px`;
-    this.stackViz.element.style.top = `${layout.stack.y}px`;
-    this.vizContainer.appendChild(this.stackViz.element);
+    stackSection.appendChild(this.stackViz.element);
+    this.vizColumn.appendChild(stackSection);
 
-    this.samplingPanel = new DOMSamplingPanel(
-      layout.sampling.width,
-      layout.sampling.height
-    );
-    this.samplingPanel.element.style.left = `${layout.sampling.x}px`;
-    this.samplingPanel.element.style.top = `${layout.sampling.y}px`;
+    // Sampling panel
+    this.samplingPanel = new DOMSamplingPanel();
     this.samplingPanel.setGroundTruth(this._getGroundTruthFunctions());
-    this.vizContainer.appendChild(this.samplingPanel.element);
+    this.vizColumn.appendChild(this.samplingPanel.element);
 
     // Flash overlay for sampling
     this.flashOverlay = document.createElement('div');
     this.flashOverlay.className = 'flash-overlay';
-    this.flashOverlay.style.cssText = `
-      position: absolute;
-      inset: 0;
-      background: white;
-      pointer-events: none;
-      opacity: 0;
-    `;
-    this.vizContainer.appendChild(this.flashOverlay);
+    this.vizColumn.appendChild(this.flashOverlay);
 
-    // Create control panel
+    // Create control panel (integrated into viz column)
     this.controls = new ControlPanel(
-      document.body,
+      this.vizColumn,
       () => this.play(),
       () => this.pause(),
       () => this.reset(),
@@ -85,10 +78,6 @@ class TracingVisualization {
       (interval) => this.setSampleInterval(interval)
     );
     this.controls.setDuration(this.trace.duration);
-
-    // Start animation loop
-    this.lastTime = performance.now();
-    this._animate();
   }
 
   loadTrace(demoData) {
@@ -108,7 +97,6 @@ class TracingVisualization {
   }
 
   _getGroundTruthFunctions() {
-    // Extract all unique function names from trace events
     const functions = new Set();
     this.trace.events.forEach(event => {
       if (event.type === 'call') {
@@ -151,11 +139,9 @@ class TracingVisualization {
   step() {
     this.pause();
 
-    // Find the next event after current time
     const nextEvent = this.trace.getNextEvent(this.currentTime);
 
     if (nextEvent) {
-      // Advance to just after the event to ensure it's processed
       this.currentTime = nextEvent.timestamp + 0.1;
       this.eventIndex = 0;
       this._rebuildState();
@@ -178,17 +164,14 @@ class TracingVisualization {
       return;
     }
 
-    // Advance time
     this.currentTime += deltaTime * this.playbackSpeed;
 
-    // Check for completion
     if (this.currentTime >= this.trace.duration) {
       this.currentTime = this.trace.duration;
       this.isPlaying = false;
       this.controls.pause();
     }
 
-    // Process events up to current time
     while (this.eventIndex < this.trace.events.length) {
       const event = this.trace.events[this.eventIndex];
 
@@ -200,10 +183,8 @@ class TracingVisualization {
       this.eventIndex++;
     }
 
-    // Update UI
     this.controls.updateTimeDisplay(this.currentTime, this.trace.duration);
 
-    // Take samples at configured interval
     if (this.currentTime - this.lastSampleTime >= this.sampleInterval) {
       this._takeSample();
       this.lastSampleTime = this.currentTime;
@@ -211,10 +192,8 @@ class TracingVisualization {
   }
 
   _processEvent(event) {
-    // Update stack visualization
     this.stackViz.processEvent(event);
 
-    // Highlight current line
     if (event.type === 'call') {
       this.codePanel.highlightLine(event.lineno);
     } else if (event.type === 'return') {
@@ -230,12 +209,10 @@ class TracingVisualization {
   }
 
   _takeSample() {
-    // Prevent overlapping animations
     if (this.flyingAnimationInProgress) return;
 
     const stack = this.trace.getStackAt(this.currentTime);
 
-    // Skip animation if stack is empty
     if (stack.length === 0) {
       this.samplingPanel.addSample(stack);
       return;
@@ -244,8 +221,8 @@ class TracingVisualization {
     this.flyingAnimationInProgress = true;
     this.stackViz.flashAll();
 
-    const flyingFrames = this.stackViz.createFlyingFrames(this.vizContainer);
-    const targetPosition = this.samplingPanel.getTargetPosition(this.vizContainer);
+    const flyingFrames = this.stackViz.createFlyingFrames(document.body);
+    const targetPosition = this.samplingPanel.getTargetPosition();
 
     this._animateFlyingFrames(flyingFrames, targetPosition);
   }
@@ -274,10 +251,9 @@ class TracingVisualization {
     };
 
     flyingFrames.forEach((frame, index) => {
-      // Get the current position of the frame
-      const framePos = frame.getPosition();
-      const startX = framePos.x + LAYOUT.frameWidth / 2;
-      const startY = framePos.y + LAYOUT.frameHeight / 2;
+      const frameRect = frame.element.getBoundingClientRect();
+      const startX = frameRect.left + frameRect.width / 2;
+      const startY = frameRect.top + frameRect.height / 2;
 
       const start = { x: startX, y: startY };
       const end = targetPosition;
@@ -298,7 +274,6 @@ class TracingVisualization {
 
     setTimeout(() => finalizeAnimation(), TIMINGS.sampleToFlame + 100);
 
-    // Flash overlay animation
     this.flashOverlay.animate([
       { opacity: 0.1 },
       { opacity: 0 }
@@ -315,18 +290,15 @@ class TracingVisualization {
 
     const events = this.trace.getEventsUntil(this.currentTime);
 
-    // Rebuild sampling state - retake samples up to current time
     for (let t = 0; t < this.currentTime; t += this.sampleInterval) {
       const stack = this.trace.getStackAt(t);
       this.samplingPanel.addSample(stack);
       this.lastSampleTime = t;
     }
 
-    // Update Stack Viz to match current state
     const stack = this.trace.getStackAt(this.currentTime);
     this.stackViz.updateToMatch(stack);
 
-    // Highlight current line
     if (stack.length > 0) {
       this.codePanel.highlightLine(stack[stack.length - 1].line);
     }

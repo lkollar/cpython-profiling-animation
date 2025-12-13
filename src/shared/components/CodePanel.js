@@ -1,17 +1,13 @@
 // DOM-based code panel for crisp text rendering
 
 export class CodePanel {
-  constructor(source, width, height) {
+  constructor(source) {
     this.source = source;
-    this.width = width;
-    this.height = height;
     this.currentLine = null;
 
     // Create DOM element
     this.element = document.createElement('div');
     this.element.id = 'code-panel';
-    this.element.style.width = `${width}px`;
-    this.element.style.height = `${height}px`;
 
     // Create title
     const title = document.createElement('div');
@@ -26,9 +22,6 @@ export class CodePanel {
 
     // Render source code
     this._renderSource();
-
-    // Append to body
-    document.body.appendChild(this.element);
   }
 
   updateSource(source) {
