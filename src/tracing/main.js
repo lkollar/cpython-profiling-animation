@@ -221,58 +221,38 @@ class TracingVisualization {
     this.flyingAnimationInProgress = true;
     this.stackViz.flashAll();
 
-    const flyingFrames = this.stackViz.createFlyingFrames(document.body);
+    const clone = this.stackViz.createStackClone(document.body);
     const targetPosition = this.samplingPanel.getTargetPosition();
 
-    this._animateFlyingFrames(flyingFrames, targetPosition);
+    this._animateStackClone(clone, targetPosition);
   }
 
-  _animateFlyingFrames(flyingFrames, targetPosition) {
-    if (flyingFrames.length === 0) {
-      this.flyingAnimationInProgress = false;
-      return;
-    }
+  _animateStackClone(clone, targetPosition) {
+    const rect = clone.getBoundingClientRect();
+    const startX = rect.left + rect.width / 2;
+    const startY = rect.top + rect.height / 2;
 
-    let completedCount = 0;
-    let animationFinalized = false;
-
-    const finalizeAnimation = () => {
-      if (animationFinalized) return;
-      animationFinalized = true;
-
+    clone.animate([
+      {
+        transform: 'translate(0, 0) scale(1)',
+        opacity: 1
+      },
+      {
+        transform: `translate(${targetPosition.x - startX}px, ${targetPosition.y - startY}px) scale(0.3)`,
+        opacity: 0.6
+      }
+    ], {
+      duration: TIMINGS.sampleToFlame,
+      easing: 'cubic-bezier(0.215, 0.61, 0.355, 1)',
+      fill: 'forwards'
+    }).onfinish = () => {
       this.samplingPanel.showImpactEffect(targetPosition);
-      flyingFrames.forEach(f => {
-        f.destroy();
-      });
+      clone.remove();
 
       const stack = this.trace.getStackAt(this.currentTime);
       this.samplingPanel.addSample(stack);
       this.flyingAnimationInProgress = false;
     };
-
-    flyingFrames.forEach((frame, index) => {
-      const frameRect = frame.element.getBoundingClientRect();
-      const startX = frameRect.left + frameRect.width / 2;
-      const startY = frameRect.top + frameRect.height / 2;
-
-      const start = { x: startX, y: startY };
-      const end = targetPosition;
-      const control = {
-        x: (start.x + end.x) / 2,
-        y: Math.min(start.y, end.y) - 80
-      };
-
-      const framePath = [start, control, end];
-
-      frame.animateAlongPath(framePath, TIMINGS.sampleToFlame, () => {
-        completedCount++;
-        if (completedCount === flyingFrames.length) {
-          finalizeAnimation();
-        }
-      });
-    });
-
-    setTimeout(() => finalizeAnimation(), TIMINGS.sampleToFlame + 100);
 
     this.flashOverlay.animate([
       { opacity: 0.1 },

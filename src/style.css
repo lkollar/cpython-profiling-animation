@@ -253,6 +253,12 @@ body {
   opacity: 1;
 }
 
+/* Flying stack clone */
+.stack-visualization.flying-clone {
+  transform-origin: center center;
+  will-change: transform, opacity;
+}
+
 /* Sampling Panel */
 .sampling-panel {
   margin: 0 20px 16px 20px;

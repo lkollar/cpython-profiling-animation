@@ -1,5 +1,4 @@
 import { DOMStackFrame } from './DOMStackFrame.js';
-import { DOMFlyingStackFrame } from './DOMFlyingStackFrame.js';
 import { LAYOUT, TIMINGS } from '../config.js';
 
 export class DOMStackVisualization {
@@ -84,23 +83,20 @@ export class DOMStackVisualization {
     this.frames.forEach(frame => frame.flash());
   }
 
-  createFlyingFrames(container) {
-    const flyingFrames = [];
+  createStackClone(container) {
+    const clone = this.element.cloneNode(true);
+    clone.className = 'stack-visualization flying-clone';
 
-    this.frames.forEach(frame => {
-      const flying = new DOMFlyingStackFrame(frame);
+    const rect = this.element.getBoundingClientRect();
+    clone.style.position = 'fixed';
+    clone.style.left = rect.left + 'px';
+    clone.style.top = rect.top + 'px';
+    clone.style.width = rect.width + 'px';
+    clone.style.pointerEvents = 'none';
+    clone.style.zIndex = '1000';
 
-      // Get frame's actual screen position (center of frame)
-      const frameRect = frame.element.getBoundingClientRect();
-      const centerX = frameRect.left + frameRect.width / 2 - 90; // 90 = half of flying frame width
-      const centerY = frameRect.top;
-      flying.setPosition(centerX, centerY);
-
-      container.appendChild(flying.element);
-      flyingFrames.push(flying);
-    });
-
-    return flyingFrames;
+    container.appendChild(clone);
+    return clone;
   }
 
   updateToMatch(targetStack) {
