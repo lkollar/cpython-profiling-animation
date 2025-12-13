@@ -25,7 +25,7 @@ export class ControlPanel {
     panel.id = 'control-panel';
     const sampleIntervalHtml = this.onSampleIntervalChange ? `
       <div class="control-group">
-        <label>Sample:</label>
+        <label>Sample interval:</label>
         <input type="range" id="sample-interval"
                min="${TIMINGS.sampleIntervalMin}"
                max="${TIMINGS.sampleIntervalMax}"

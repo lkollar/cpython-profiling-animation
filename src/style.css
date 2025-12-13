@@ -350,16 +350,17 @@ body {
 #control-panel {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 16px;
   padding: 16px 20px;
   background: var(--bg-panel);
   border-top: 1px solid var(--border-color);
   flex-shrink: 0;
+  flex-wrap: wrap;
 }
 
 .control-group {
   display: flex;
-  gap: 6px;
+  gap: 8px;
   align-items: center;
 }
 
@@ -367,6 +368,7 @@ body {
   font-size: 11px;
   color: var(--text-muted);
   font-weight: 500;
+  white-space: nowrap;
 }
 
 .control-btn {
@@ -409,8 +411,8 @@ body {
   flex: 1;
   display: flex;
   align-items: center;
-  gap: 12px;
-  margin-left: auto;
+  gap: 10px;
+  min-width: 200px;
 }
 
 #timeline-scrubber {
@@ -421,7 +423,7 @@ body {
   outline: none;
   -webkit-appearance: none;
   cursor: pointer;
-  min-width: 120px;
+  min-width: 80px;
 }
 
 #timeline-scrubber::-webkit-slider-thumb {
@@ -459,13 +461,14 @@ body {
 
 /* Sample Interval Slider */
 #sample-interval {
-  width: 80px;
+  width: 100px;
   height: 4px;
   border-radius: 2px;
   background: var(--border-color);
   outline: none;
   -webkit-appearance: none;
   cursor: pointer;
+  flex-shrink: 0;
 }
 
 #sample-interval::-webkit-slider-thumb {
