@@ -23,10 +23,9 @@ export class DOMFlyingStackFrame {
     textElement.textContent = `${this.functionName}:${this.lineno}`;
     this.element.appendChild(textElement);
 
-    // Set dimensions to match source
-    const sourceRect = sourceFrame.element.getBoundingClientRect();
-    this.element.style.width = `${sourceRect.width}px`;
-    this.element.style.height = `${sourceRect.height}px`;
+    // Set fixed dimensions for flying frames
+    this.element.style.width = '180px';
+    this.element.style.height = '36px';
 
     // Immediately make visible
     this.element.classList.add('visible');

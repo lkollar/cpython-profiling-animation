@@ -90,9 +90,11 @@ export class DOMStackVisualization {
     this.frames.forEach(frame => {
       const flying = new DOMFlyingStackFrame(frame);
 
-      // Get frame's actual screen position
+      // Get frame's actual screen position (center of frame)
       const frameRect = frame.element.getBoundingClientRect();
-      flying.setPosition(frameRect.left, frameRect.top);
+      const centerX = frameRect.left + frameRect.width / 2 - 90; // 90 = half of flying frame width
+      const centerY = frameRect.top;
+      flying.setPosition(centerX, centerY);
 
       container.appendChild(flying.element);
       flyingFrames.push(flying);
