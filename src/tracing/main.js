@@ -4,8 +4,8 @@ import { CodePanel } from '../shared/components/CodePanel.js';
 import { DOMStackVisualization } from '../shared/components/DOMStackVisualization.js';
 import { DOMSamplingPanel } from '../shared/components/DOMSamplingPanel.js';
 import { ControlPanel } from '../shared/components/ControlPanel.js';
-import { Tween } from '../shared/utils/DOMAnimationUtils.js';
 import { TIMINGS, LAYOUT } from '../shared/config.js';
+import { VisualEffectsManager } from '../shared/managers/VisualEffectsManager.js';
 
 class TracingVisualization {
   constructor(container) {
@@ -23,10 +23,12 @@ class TracingVisualization {
     // Sampling state
     this.sampleInterval = TIMINGS.sampleIntervalDefault;
     this.lastSampleTime = 0;
-    this.flyingAnimationInProgress = false;
 
     // Create new DOM structure
     this._createLayout();
+    
+    // specialized manager
+    this.effectsManager = new VisualEffectsManager(this.vizColumn);
 
     // Start animation loop
     this.lastTime = performance.now();
@@ -60,11 +62,6 @@ class TracingVisualization {
     this.samplingPanel = new DOMSamplingPanel();
     this.samplingPanel.setGroundTruth(this._getGroundTruthFunctions());
     this.vizColumn.appendChild(this.samplingPanel.element);
-
-    // Flash overlay for sampling
-    this.flashOverlay = document.createElement('div');
-    this.flashOverlay.className = 'flash-overlay';
-    this.vizColumn.appendChild(this.flashOverlay);
 
     // Create control panel (integrated into viz column)
     this.controls = new ControlPanel(
@@ -157,8 +154,6 @@ class TracingVisualization {
   }
 
   update(deltaTime) {
-    Tween.updateAll(deltaTime);
-
     if (!this.isPlaying) {
       this.controls.updateTimeDisplay(this.currentTime, this.trace.duration);
       return;
@@ -209,58 +204,12 @@ class TracingVisualization {
   }
 
   _takeSample() {
-    if (this.flyingAnimationInProgress) return;
-
-    const stack = this.trace.getStackAt(this.currentTime);
-
-    if (stack.length === 0) {
-      this.samplingPanel.addSample(stack);
-      return;
-    }
-
-    this.flyingAnimationInProgress = true;
-    this.stackViz.flashAll();
-
-    const clone = this.stackViz.createStackClone(document.body);
-    const targetPosition = this.samplingPanel.getTargetPosition();
-
-    this._animateStackClone(clone, targetPosition);
-  }
-
-  _animateStackClone(clone, targetPosition) {
-    const rect = clone.getBoundingClientRect();
-    const startX = rect.left + rect.width / 2;
-    const startY = rect.top + rect.height / 2;
-
-    clone.animate([
-      {
-        transform: 'translate(0, 0) scale(1)',
-        opacity: 1
-      },
-      {
-        transform: `translate(${targetPosition.x - startX}px, ${targetPosition.y - startY}px) scale(0.3)`,
-        opacity: 0.6
-      }
-    ], {
-      duration: TIMINGS.sampleToFlame,
-      easing: 'cubic-bezier(0.215, 0.61, 0.355, 1)',
-      fill: 'forwards'
-    }).onfinish = () => {
-      this.samplingPanel.showImpactEffect(targetPosition);
-      clone.remove();
-
-      const stack = this.trace.getStackAt(this.currentTime);
-      this.samplingPanel.addSample(stack);
-      this.flyingAnimationInProgress = false;
-    };
-
-    this.flashOverlay.animate([
-      { opacity: 0.1 },
-      { opacity: 0 }
-    ], {
-      duration: 150,
-      easing: 'cubic-bezier(0.25, 0.46, 0.45, 0.94)'
-    });
+    this.effectsManager.triggerSamplingEffect(
+        this.stackViz, 
+        this.samplingPanel, 
+        this.currentTime, 
+        this.trace
+    );
   }
 
   _rebuildState() {

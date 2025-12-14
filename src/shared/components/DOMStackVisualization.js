@@ -1,5 +1,5 @@
 import { DOMStackFrame } from './DOMStackFrame.js';
-import { LAYOUT, TIMINGS } from '../config.js';
+import { LAYOUT } from '../config.js';
 
 export class DOMStackVisualization {
   constructor() {
@@ -84,7 +84,8 @@ export class DOMStackVisualization {
   }
 
   createStackClone(container) {
-    const clone = this.element.cloneNode(true);
+    // Shallow clone of container to keep classes/styles but discard children (including dying frames)
+    const clone = this.element.cloneNode(false);
     clone.className = 'stack-visualization flying-clone';
 
     const rect = this.element.getBoundingClientRect();
@@ -95,25 +96,54 @@ export class DOMStackVisualization {
     clone.style.pointerEvents = 'none';
     clone.style.zIndex = '1000';
 
+    // Clone only active frames and force their visibility
+    this.frames.forEach(frame => {
+        const frameClone = frame.element.cloneNode(true);
+        
+        // Force visible state to avoid race conditions with entry animations
+        frameClone.classList.add('visible');
+        frameClone.style.opacity = '1';
+        frameClone.style.transform = 'translateY(0)';
+        frameClone.style.transition = 'none';
+        
+        clone.appendChild(frameClone);
+    });
+
     container.appendChild(clone);
     return clone;
   }
 
   updateToMatch(targetStack) {
-    this.clear();
+    // 1. Remove excess frames
+    while (this.frames.length > targetStack.length) {
+      this.popFrame();
+    }
 
+    // 2. Update existing and add new
     targetStack.forEach(({ func, file, line, args }, index) => {
-      const frame = new DOMStackFrame(func, file, line, args);
+      if (index < this.frames.length) {
+        // Update existing frame if needed
+        const frame = this.frames[index];
+        if (frame.functionName !== func || frame.filename !== file) {
+             frame.updateLine(line);
+        }
 
-      if (index === targetStack.length - 1) {
-        frame.setActive(true);
+        // Ensure active state for top frame
+        if (index === targetStack.length - 1) {
+          frame.setActive(true);
+        } else {
+            frame.setActive(false);
+        }
+      } else {
+        // Add new frame
+        this.pushFrame(func, file, line, args);
+        // pushFrame handles active state
       }
-
-      this.element.appendChild(frame.element);
-      this.frames.push(frame);
-
-      // Make visible immediately when rebuilding
-      frame.element.classList.add('visible');
     });
+
+    // Ensure active state if stack became shorter
+    if (this.frames.length > 0) {
+        this.frames[this.frames.length - 1].setActive(true);
+    }
   }
 }

@@ -1,5 +1,4 @@
 // DOM-based animation utilities using Web Animations API
-// Replaces PixiJS/GSAP tweening system with WAAPI
 
 export class AnimationManager {
   constructor() {
@@ -26,9 +25,6 @@ export class AnimationManager {
     };
 
     const cssEasing = easingMap[easing] || easingMap.easeOutQuad;
-
-    // Prepare keyframes
-    const keyframes = [];
 
     // For complex props like transform, build a single transform string
     const transformProps = {};
@@ -220,36 +216,3 @@ export function approximatePath(start, control, end, steps = 20) {
 
 // Global animation manager instance
 export const anim = new AnimationManager();
-
-// Legacy compatibility with existing Tween API
-export class Tween {
-  static to(target, props, duration, easing = 'easeOutQuad', onComplete = null) {
-    return anim.to(target, props, duration, easing, onComplete);
-  }
-
-  static killTweensOf(target) {
-    anim.killAnimationsOf(target);
-  }
-
-  static followPath(target, path, duration, easing = 'easeOutCubic', onComplete = null) {
-    return anim.bezierPath(target, path, duration, easing, onComplete);
-  }
-
-  static bezierPoint(path, t) {
-    const [p0, p1, p2] = path;
-    const mt = 1 - t;
-    return {
-      x: mt * mt * p0.x + 2 * mt * t * p1.x + t * t * p2.x,
-      y: mt * mt * p0.y + 2 * mt * t * p1.y + t * t * p2.y
-    };
-  }
-
-  static updateAll(deltaTime) {
-    // No-op for WAAPI - animations run independently
-  }
-
-  static killAll() {
-    anim.activeAnimations.forEach(animation => animation.cancel());
-    anim.activeAnimations.clear();
-  }
-}
