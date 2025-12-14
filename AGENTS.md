@@ -1,12 +1,12 @@
 # Repository Guidelines
 
 ## Project Structure & Module Organization
-- `src/execution/`: Main entry point for the execution visualization (`main.js`).
+- `src/main.js`: Main entry point for the visualization.
 - `src/shared/`: Shared components, models, and utilities.
-  - `components/`: UI and PixiJS components (`StackVisualization`, `CodePanel`, etc.).
+  - `components/`: UI DOM components (`DOMStackVisualization`, `CodePanel`, etc.).
   - `models/`: Data models (`ExecutionTrace`).
   - `data/`: Demo data and traces.
-  - `utils/`: Helper functions (`AnimationUtils`).
+  - `utils/`: Helper functions (`DOMAnimationUtils`).
 - `public/`: Static assets and HTML entry points.
 
 ## Build, Test, and Development Commands
@@ -17,20 +17,19 @@
 
 ## Coding Style & Naming Conventions
 - **JavaScript**: Modern ES6+ modules (`import`/`export`).
-- **PixiJS**: Use v8 API. Prefer `Application` and `Container` classes.
-- **Components**: Class-based components extending `PIXI.Container` where appropriate.
-- **Styling**: CSS for DOM overlays (`CodePanel`), PixiJS graphics for canvas elements.
+- **DOM/CSS**: Use standard DOM API and CSS for all visualization.
+- **Animation**: Use Web Animations API (WAAPI) via `DOMAnimationUtils.js`.
 - **Naming**: `PascalCase` for classes/components, `camelCase` for instances/functions.
 
 ## Architecture Overview
 - **Execution Model**: Driven by `ExecutionTrace` which parses a list of events (`call`, `return`, `line`).
 - **Visualization**:
-  - `StackVisualization`: Renders the call stack using `StackFrame` components.
-  - `TimelinePanel`: Shows execution progress over time.
+  - `DOMStackVisualization`: Renders the call stack using `DOMStackFrame` components.
   - `CodePanel`: DOM-based overlay for crisp text rendering of source code.
-- **Animation**: Custom `Tween` system in `AnimationUtils.js` (do not use GSAP).
+  - `DOMSamplingPanel`: Sampling profiler visualization.
+- **Animation**: Event-driven WAAPI system (no central tween loop).
 
 ## Key Files
-- `src/execution/main.js`: Controller for the visualization loop.
+- `src/main.js`: Controller for the visualization loop.
 - `src/shared/data/demoData.js`: Contains the source code and execution trace data.
 - `src/shared/config.js`: Configuration for colors, layout, and timings.

@@ -14,18 +14,16 @@ This single-page application visualizes Python code execution with:
 
 ### Core Components
 
-- **TracingVisualization** (`src/tracing/main.js`) - Main orchestrator
-- **StackVisualization** (`src/shared/components/StackVisualization.js`) - Manages stack frames
-- **SamplingPanel** (`src/shared/components/SamplingPanel.js`) - Displays sampling results
+- **SamplingVisualization** (`src/main.js`) - Main orchestrator
+- **DOMStackVisualization** (`src/shared/components/DOMStackVisualization.js`) - Manages stack frames
+- **DOMSamplingPanel** (`src/shared/components/DOMSamplingPanel.js`) - Displays sampling results
 - **CodePanel** (`src/shared/components/CodePanel.js`) - Shows source code with highlighting
 - **ControlPanel** (`src/shared/components/ControlPanel.js`) - Playback controls
 
 ### Animation System
 
-- **AnimationManager** (`src/shared/managers/AnimationManager.js`) - Coordinates all animations
-- **BaseStackFrame** (`src/shared/components/BaseStackFrame.js`) - Shared base for all frames
-- **FlyingStackFrame** (`src/shared/components/FlyingStackFrame.js`) - Animated flying frames
-- **AnimationUtils** (`src/shared/utils/AnimationUtils.js`) - Custom tweening system
+- **AnimationManager** (`src/shared/utils/DOMAnimationUtils.js`) - Coordinates all animations
+- **DOMStackFrame** (`src/shared/components/DOMStackFrame.js`) - Shared base for all frames
 
 ### Configuration
 
