@@ -1,13 +1,13 @@
-import { DEMO_FIBONACCI, DEMO_SIMPLE } from '../shared/data/demoData.js';
-import { ExecutionTrace } from '../shared/models/ExecutionTrace.js';
-import { CodePanel } from '../shared/components/CodePanel.js';
-import { DOMStackVisualization } from '../shared/components/DOMStackVisualization.js';
-import { DOMSamplingPanel } from '../shared/components/DOMSamplingPanel.js';
-import { ControlPanel } from '../shared/components/ControlPanel.js';
-import { TIMINGS, LAYOUT } from '../shared/config.js';
-import { VisualEffectsManager } from '../shared/managers/VisualEffectsManager.js';
+import { DEMO_FIBONACCI, DEMO_SIMPLE } from './shared/data/demoData.js';
+import { ExecutionTrace } from './shared/models/ExecutionTrace.js';
+import { CodePanel } from './shared/components/CodePanel.js';
+import { DOMStackVisualization } from './shared/components/DOMStackVisualization.js';
+import { DOMSamplingPanel } from './shared/components/DOMSamplingPanel.js';
+import { ControlPanel } from './shared/components/ControlPanel.js';
+import { TIMINGS, LAYOUT } from './shared/config.js';
+import { VisualEffectsManager } from './shared/managers/VisualEffectsManager.js';
 
-class TracingVisualization {
+class SamplingVisualization {
   constructor(container) {
     this.container = container;
 
@@ -238,4 +238,4 @@ class TracingVisualization {
 
 // Initialize
 const appContainer = document.querySelector('#app');
-new TracingVisualization(appContainer);
+new SamplingVisualization(appContainer);
